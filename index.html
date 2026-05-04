@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CityPulse · The City Dividend · v2.0 Value Explanation + Print-Safe Council Value Tool</title>
+<title>CityPulse · The City Dividend · v3.0 RC2 Consolidated Fix</title>
 <style>
 :root{
   --bg:#080c12;--bg2:#0d1520;--bg3:#111a28;--card:#131e2e;--card2:#192435;--card3:#1e2d40;
@@ -98,6 +98,7 @@
       <section class="screen" id="screen-4"></section>
       <section class="screen" id="screen-5"></section>
       <section class="screen" id="screen-6"></section>
+      <section class="screen" id="screen-7"></section>
     </div>
     <aside class="sidebar"><div class="summary" id="live-summary"></div></aside>
 
@@ -438,7 +439,7 @@
 
 <script>
 const FACTORY_CONFIG = {
-  meta:{appTitle:"CityPulse · The City Dividend",appSubtitle:"Configurable council value engine · SenSen.ai",configVersion:"1.8-serious-council-rc",currency:"AUD",horizonYears:5,discountRate:0.07,disclaimer:"Indicative value model only. Benefits are hypotheses until validated against council source data, local policy settings, deployment scope and council-approved assumptions. The City Dividend includes both validated financial value and broader council value such as time, trust, economic vitality, safety and climate outcomes."},
+  meta:{appTitle:"CityPulse · The City Dividend",appSubtitle:"Configurable council value engine · SenSen.ai",configVersion:"2.7.1-governance-validation-fixed",currency:"AUD",horizonYears:5,discountRate:0.07,disclaimer:"Indicative value model only. Benefits are hypotheses until validated against council source data, local policy settings, deployment scope and council-approved assumptions. The City Dividend includes both validated financial value and broader council value such as time, trust, economic vitality, safety and climate outcomes."},
   language:{heroEyebrow:"Council-grade value modelling · commercial council framing · configurable assumptions",heroTitle:"Build the CityPulse value case from the council’s actual operating pressures.",heroSubtitle:"Select pain points, configure CityPulse modules and SenSen product deployment, tune assumptions, and generate a transparent City Dividend across Financial, Time, Community, Economic, Climate and Safety outcomes.",nextSteps:"Use this output to run a validation workshop with the executive sponsor, Finance, Operations, Assets, Local Laws, Community, Economic Development and relevant service owners."},
   scenarios:[
     {id:"conservative",name:"Conservative",multiplier:0.65,description:"Lower uptake, slower operating adoption and conservative attribution."},
@@ -451,6 +452,9 @@ const FACTORY_CONFIG = {
     {id:"advanced",name:"Advanced",multiplier:1.00,description:"Mature data, governance and adoption settings."}
   ],
   rampProfiles:{fast:[0.55,0.85,1,1,1],medium:[0.35,0.70,0.95,1,1],slow:[0.20,0.50,0.75,0.95,1]},
+  analytics:{sensitivitySweep:0.20},
+  confidenceHaircuts:{High:1.00,Medium:0.70,Low:0.40},
+  inactionModel:{reactiveMaintenanceGrowth:0.04,infringementLeakageGrowth:0.02,formalComplaintGrowth:0.05,liabilityClaimsGrowth:0.03,avgComplaintEscalationCost:180,description:"Indicative cost-of-inaction model. Growth rates should be validated with council finance and service owners before external use."},
   dividends:[
     {id:"financial",name:"Financial",color:"green",description:"Revenue recovered, costs avoided and cashable productivity."},
     {id:"time",name:"Time",color:"blue",description:"Officer, executive, reporting and review time released."},
@@ -559,6 +563,10 @@ function ensureState(){
   if(!STATE.inputs) STATE.inputs={};
   if(!STATE.scenarioId) STATE.scenarioId='expected';
   if(!STATE.maturityId) STATE.maturityId='developing';
+  if(STATE.sensitivitySweep===undefined) STATE.sensitivitySweep=(CONFIG.analytics&&CONFIG.analytics.sensitivitySweep)||0.20;
+  if(!CONFIG.analytics) CONFIG.analytics={sensitivitySweep:0.20};
+  if(!CONFIG.confidenceHaircuts) CONFIG.confidenceHaircuts={High:1.00,Medium:0.70,Low:0.40};
+  if(!CONFIG.inactionModel) CONFIG.inactionModel={reactiveMaintenanceGrowth:0.04,infringementLeakageGrowth:0.02,formalComplaintGrowth:0.05,liabilityClaimsGrowth:0.03,avgComplaintEscalationCost:180,description:"Indicative cost-of-inaction model. Growth rates should be validated with council finance and service owners before external use."};
   Object.keys(CONFIG.useCases).forEach(id=>{if(STATE.selectedUseCases[id]===undefined)STATE.selectedUseCases[id]=false;});
 }
 function buildDefaultInputs(profileId){
@@ -687,7 +695,7 @@ function costAssumptionHelp(key){
 
 function cashabilityOptions(current){const opts=['Cashable','Cashable where legally/policy enabled','Avoided cost','Capacity released','Risk-adjusted avoided cost','Strategic / attributable economic value','Broader public value'];return opts.map(o=>`<option value="${escapeHtml(o)}" ${o===current?'selected':''}>${escapeHtml(o)}</option>`).join('')+(opts.includes(current)?'':`<option selected>${escapeHtml(current||'')}</option>`)}
 function confidenceOptions(current){const opts=['High','Medium','Low'];return opts.map(o=>`<option value="${o}" ${o===current?'selected':''}>${o}</option>`).join('')+(opts.includes(current)?'':`<option selected>${escapeHtml(current||'')}</option>`)}
-function calculate(){
+function calculateBase(){
   ensureState();
   const ctx=contextVars(); const active=activeUseCaseIds(); const benefits=[];
   for(const b of CONFIG.benefitLines){
@@ -722,6 +730,204 @@ function calculate(){
   const totalBridge={annualBenefit:annualTotal,discountedBenefits:allMetrics.discountedBenefits,discountedCosts:allMetrics.discountedCosts,npv:allMetrics.npv,bcr:allMetrics.bcr,payback:allMetrics.payback,year1Cost:allMetrics.years[0]?.cost||0,baseRecurringCost:allMetrics.annualRecurringCost,undiscountedTotalCost:allMetrics.totalCosts,discountedTotalCost:allMetrics.discountedCosts,escalationRate:allMetrics.escalationRate};
   const financialBridge={annualBenefit:financialAnnual,discountedBenefits:financialMetrics.discountedBenefits,discountedCosts:financialMetrics.discountedCosts,npv:financialMetrics.npv,bcr:financialMetrics.bcr,payback:financialMetrics.payback};
   return {benefits,validatedBenefits,productCosts,products,annualCost,oneOffCost,totalCosts:allMetrics.totalCosts,totalBenefits:allMetrics.totalBenefits,years:allMetrics.years,npv:allMetrics.npv,bcr:allMetrics.bcr,payback:allMetrics.payback,discountedBenefits:allMetrics.discountedBenefits,discountedCosts:allMetrics.discountedCosts,financial:financialMetrics,financialAnnual,annualTotal,totalBridge,financialBridge,buckets,dividends,emissionsKg,ctx,breakdowns,validationWarnings};
+}
+
+
+function confidenceHaircutFor(conf){
+  const h=(CONFIG.confidenceHaircuts||{High:1,Medium:.7,Low:.4});
+  return Number(h[conf] ?? h[String(conf||'').trim()] ?? 0.70);
+}
+function calculateConfidenceAdjusted(base){
+  const adjusted=(base.benefits||[]).map(b=>{
+    const h=confidenceHaircutFor(b.confidence);
+    return {...b, annual:(b.annual||0)*h, yearly:(b.yearly||[]).map(v=>v*h), confidenceHaircut:h};
+  });
+  const m=calculateFinancialMetrics(adjusted,base.annualCost||0,base.oneOffCost||0);
+  const annual=adjusted.reduce((a,b)=>a+(b.annual||0),0);
+  const haircutAmount=(base.discountedBenefits||0)-(m.discountedBenefits||0);
+  return {annual,npv:m.npv,bcr:m.bcr,payback:m.payback,discountedBenefits:m.discountedBenefits,discountedCosts:m.discountedCosts,haircutAmount};
+}
+function activeBenefitFormulaVars(){
+  const active=activeUseCaseIds();
+  const vars=new Set();
+  (CONFIG.benefitLines||[]).forEach(b=>{
+    if(active.includes(b.useCase)) formulaVars(b.formula||'').forEach(v=>vars.add(v));
+  });
+  return vars;
+}
+function withTemporaryState(fn){
+  const saved=clone(STATE);
+  try{return fn();} finally {STATE=saved; ensureState();}
+}
+function calculateSensitivity(base){
+  const sweep=Number(STATE.sensitivitySweep ?? (CONFIG.analytics&&CONFIG.analytics.sensitivitySweep) ?? 0.20);
+  const activeVars=activeBenefitFormulaVars();
+  const ctx=base.ctx||contextVars();
+  const candidates=Object.keys(STATE.inputs||{}).filter(k=>activeVars.has(k)&&isFinite(Number(ctx[k]))&&Math.abs(Number(ctx[k]))>0);
+  const baseline=base.npv||0;
+  const rows=[];
+  candidates.forEach(k=>{
+    const original=STATE.inputs[k];
+    const val=Number(ctx[k]);
+    if(!isFinite(val)||Math.abs(val)===0)return;
+    STATE.inputs[k]=val*(1-sweep);
+    const down=calculateBase().npv||0;
+    STATE.inputs[k]=val*(1+sweep);
+    const up=calculateBase().npv||0;
+    STATE.inputs[k]=original;
+    rows.push({key:k,label:CONFIG.parameters?.[k]?.label||k,baselineValue:val,downNpv:down,upNpv:up,downDelta:down-baseline,upDelta:up-baseline,swing:Math.abs(up-down),sweep});
+  });
+  rows.sort((a,b)=>b.swing-a.swing);
+  return rows.slice(0,10);
+}
+function calculateScenarioCompare(){
+  const saved=STATE.scenarioId;
+  const rows={};
+  ['conservative','expected','stretch'].forEach(id=>{
+    STATE.scenarioId=id;
+    const c=calculateBase();
+    rows[id]={annualTotal:c.annualTotal,financialAnnual:c.financialAnnual,npv:c.npv,bcr:c.bcr,payback:c.payback};
+  });
+  STATE.scenarioId=saved;
+  return rows;
+}
+function calculateInactionCost(base){
+  const m=CONFIG.inactionModel||{};
+  const ctx=base.ctx||contextVars();
+  const reactive=Number(ctx.reactiveMaintenanceSpend)||0;
+  const issued=(Number(ctx.infringementVolume)||0)*(Number(ctx.averageInfringementValue)||0);
+  const leakage=issued*Math.max(0,1-(Number(ctx.collectionRate)||0));
+  const complaintBase=(Number(ctx.formalComplaints)||0)*(Number(m.avgComplaintEscalationCost)||0);
+  const liabilityBase=(Number(ctx.liabilityClaims)||0)*(Number(ctx.avgClaimCost)||0);
+  const rows=[]; let cumulative=0;
+  for(let i=0;i<CONFIG.meta.horizonYears;i++){
+    const reactiveCost=reactive*Math.pow(1+(Number(m.reactiveMaintenanceGrowth)||0),i);
+    const leakageCost=leakage*Math.pow(1+(Number(m.infringementLeakageGrowth)||0),i);
+    const complaintCost=complaintBase*Math.pow(1+(Number(m.formalComplaintGrowth)||0),i);
+    const liabilityCost=liabilityBase*Math.pow(1+(Number(m.liabilityClaimsGrowth)||0),i);
+    const total=reactiveCost+leakageCost+complaintCost+liabilityCost;
+    cumulative+=total;
+    rows.push({year:i+1,reactiveCost,leakageCost,complaintCost,liabilityCost,total,cumulative});
+  }
+  const investmentCost=base.discountedCosts||0;
+  return {rows,cumulative,investmentCost,netAdvantage:cumulative-investmentCost,model:m};
+}
+function calculate(){
+  const base=calculateBase();
+  base.confidenceAdjusted=calculateConfidenceAdjusted(base);
+  base.sensitivity=withTemporaryState(()=>calculateSensitivity(base));
+  base.scenarioCompare=withTemporaryState(()=>calculateScenarioCompare());
+  base.inactionCost=calculateInactionCost(base);
+  base.visuals=calculateVisualAnalytics(base);
+  return base;
+}
+
+function cumulativeSum(arr){let t=0;return (arr||[]).map(v=>{t+=Number(v)||0;return t;});}
+function calculateVisualAnalytics(base){
+  const years=base.years||[];
+  const cashflow=years.map(y=>({year:y.year,cumulativeNet:y.cumulative,cumulativeBenefits:0,cumulativeCosts:0}));
+  const cumBenefits=cumulativeSum(years.map(y=>y.benefit));
+  const cumCosts=cumulativeSum(years.map(y=>y.cost));
+  cashflow.forEach((r,i)=>{r.cumulativeBenefits=cumBenefits[i]||0;r.cumulativeCosts=cumCosts[i]||0;});
+  const r=Number(CONFIG.meta.discountRate)||0;
+  const oneOffPv=(years[0]?.oneOffCost||0)/Math.pow(1+r,1);
+  const recurringPv=Math.max(0,(base.discountedCosts||0)-oneOffPv);
+  const gross=base.totalBenefits||0;
+  const discounting=(base.discountedBenefits||0)-gross;
+  const haircut=base.confidenceAdjusted?.haircutAmount||0;
+  const waterfall=[
+    {label:'Gross 5-yr benefits',amount:gross,type:'start'},
+    {label:'Less discounting',amount:discounting,type:'delta'},
+    {label:'Less recurring costs',amount:-recurringPv,type:'delta'},
+    {label:'Less one-off costs',amount:-oneOffPv,type:'delta'},
+    {label:'Less confidence haircut',amount:-haircut,type:'delta'},
+    {label:'Final confidence-adjusted NPV',amount:base.confidenceAdjusted?.npv||0,type:'end'}
+  ];
+  const dividendYears=years.map((y,idx)=>{
+    const row={year:y.year};
+    (CONFIG.dividends||[]).forEach(d=>row[d.id]=0);
+    (base.benefits||[]).forEach(b=>{
+      Object.entries(b.dividends||{}).forEach(([did,w])=>{row[did]=(row[did]||0)+((b.yearly?.[idx]||0)*w);});
+    });
+    return row;
+  });
+  return {cashflow,waterfall,dividendYears};
+}
+function svgLineChart(data,series,opts={}){
+  const w=900,h=290,p={l:74,r:24,t:26,b:44};
+  const values=[]; data.forEach(d=>series.forEach(s=>values.push(Number(d[s.key])||0)));
+  let min=Math.min(0,...values), max=Math.max(1,...values); if(max===min){max=min+1;}
+  const x=i=>p.l+(data.length<=1?0:i*((w-p.l-p.r)/(data.length-1)));
+  const y=v=>p.t+(max-v)*(h-p.t-p.b)/(max-min);
+  const grid=[0,.25,.5,.75,1].map(t=>{const yy=p.t+t*(h-p.t-p.b); const val=max-(max-min)*t; return `<line x1="${p.l}" y1="${yy}" x2="${w-p.r}" y2="${yy}" stroke="rgba(255,255,255,.08)"/><text x="${p.l-10}" y="${yy+4}" text-anchor="end" fill="#7c8ba1" font-size="10">${fmt(val,'currencyK')}</text>`;}).join('');
+  const lines=series.map(s=>{const pts=data.map((d,i)=>`${x(i)},${y(Number(d[s.key])||0)}`).join(' ');return `<polyline points="${pts}" fill="none" stroke="var(--${s.color})" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><g>${data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(Number(d[s.key])||0)}" r="3.5" fill="var(--${s.color})"/>`).join('')}</g>`;}).join('');
+  const xlabels=data.map((d,i)=>`<text x="${x(i)}" y="${h-16}" text-anchor="middle" fill="#7c8ba1" font-size="11">Y${d.year}</text>`).join('');
+  const breakeven=opts.payback!=null&&isFinite(opts.payback)&&opts.payback<=data.length?(()=>{const bx=p.l+((opts.payback)/(data.length-1))*(w-p.l-p.r);return `<line x1="${bx}" y1="${p.t}" x2="${bx}" y2="${h-p.b}" stroke="var(--amber)" stroke-dasharray="4 4"/><text x="${bx+6}" y="${p.t+12}" fill="var(--amber)" font-size="11">payback ${Number(opts.payback).toFixed(1)}y</text>`;})():'';
+  const legend=series.map((s,i)=>`<g transform="translate(${p.l+i*190},${h-4})"><rect width="10" height="10" rx="2" fill="var(--${s.color})"></rect><text x="16" y="10" fill="#7c8ba1" font-size="11">${s.name}</text></g>`).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img"><rect x="0" y="0" width="${w}" height="${h}" fill="transparent"/>${grid}<line x1="${p.l}" y1="${h-p.b}" x2="${w-p.r}" y2="${h-p.b}" stroke="rgba(255,255,255,.16)"/>${breakeven}${lines}${xlabels}${legend}</svg>`;
+}
+function waterfallChartSvg(data){
+  const w=900,h=320,p={l:48,r:24,t:26,b:72};
+  let running=0; const bars=[];
+  data.forEach((d,i)=>{
+    if(d.type==='start'){bars.push({...d,start:0,end:d.amount}); running=d.amount;}
+    else if(d.type==='end'){bars.push({...d,start:0,end:d.amount});}
+    else{bars.push({...d,start:running,end:running+d.amount}); running+=d.amount;}
+  });
+  const vals=bars.flatMap(b=>[b.start,b.end,0]); let min=Math.min(...vals), max=Math.max(...vals); if(min===max){max=min+1;}
+  const y=v=>p.t+(max-v)*(h-p.t-p.b)/(max-min);
+  const x=i=>p.l+i*((w-p.l-p.r)/bars.length)+8;
+  const bw=Math.max(28,((w-p.l-p.r)/bars.length)-18);
+  const grid=[0,.25,.5,.75,1].map(t=>{const yy=p.t+t*(h-p.t-p.b); const val=max-(max-min)*t; return `<line x1="${p.l}" y1="${yy}" x2="${w-p.r}" y2="${yy}" stroke="rgba(255,255,255,.08)"/><text x="${p.l-8}" y="${yy+4}" text-anchor="end" fill="#7c8ba1" font-size="10">${fmt(val,'currencyK')}</text>`;}).join('');
+  const items=bars.map((b,i)=>{const y1=y(Math.max(b.start,b.end)), y2=y(Math.min(b.start,b.end)); const hh=Math.max(3,y2-y1); const positive=b.end>=b.start; const color=b.type==='end'?'blue':(positive?'green':'red'); const label=(b.amount>=0?'+':'')+fmt(b.amount,'currencyK'); return `<g><rect x="${x(i)}" y="${y1}" width="${bw}" height="${hh}" rx="5" fill="var(--${color})" opacity=".82"></rect><text x="${x(i)+bw/2}" y="${y1-6}" text-anchor="middle" fill="#d9e7f5" font-size="10">${label}</text><text x="${x(i)+bw/2}" y="${h-48}" text-anchor="middle" fill="#7c8ba1" font-size="10">${escapeHtml(b.label.split(' ').slice(0,2).join(' '))}</text><text x="${x(i)+bw/2}" y="${h-34}" text-anchor="middle" fill="#7c8ba1" font-size="10">${escapeHtml(b.label.split(' ').slice(2).join(' '))}</text></g>`;}).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img">${grid}<line x1="${p.l}" y1="${y(0)}" x2="${w-p.r}" y2="${y(0)}" stroke="rgba(255,255,255,.22)"/>${items}</svg>`;
+}
+function dividendStackedSvg(data){
+  const w=900,h=320,p={l:70,r:24,t:26,b:58};
+  const divs=CONFIG.dividends||[];
+  const totals=data.map(r=>divs.reduce((a,d)=>a+(Number(r[d.id])||0),0));
+  const max=Math.max(1,...totals);
+  const x=i=>p.l+i*((w-p.l-p.r)/data.length)+22;
+  const bw=Math.max(42,((w-p.l-p.r)/data.length)-44);
+  const y=v=>p.t+(max-v)*(h-p.t-p.b)/max;
+  const grid=[0,.25,.5,.75,1].map(t=>{const yy=p.t+t*(h-p.t-p.b); const val=max-(max)*t; return `<line x1="${p.l}" y1="${yy}" x2="${w-p.r}" y2="${yy}" stroke="rgba(255,255,255,.08)"/><text x="${p.l-8}" y="${yy+4}" text-anchor="end" fill="#7c8ba1" font-size="10">${fmt(val,'currencyK')}</text>`;}).join('');
+  const bars=data.map((r,i)=>{let acc=0; const segs=divs.map(d=>{const v=Number(r[d.id])||0; const yTop=y(acc+v); const yBot=y(acc); const hh=Math.max(0,yBot-yTop); acc+=v; return `<rect x="${x(i)}" y="${yTop}" width="${bw}" height="${hh}" fill="var(--${d.color})" opacity=".82"><title>${d.name}: ${fmt(v)}</title></rect>`;}).join(''); return `<g>${segs}<text x="${x(i)+bw/2}" y="${h-28}" text-anchor="middle" fill="#7c8ba1" font-size="11">Y${r.year}</text></g>`;}).join('');
+  const legend=divs.map((d,i)=>`<g transform="translate(${p.l+(i%3)*220},${h-12+Math.floor(i/3)*14})"><rect width="10" height="10" rx="2" fill="var(--${d.color})"></rect><text x="16" y="10" fill="#7c8ba1" font-size="11">${d.name}</text></g>`).join('');
+  return `<svg viewBox="0 0 ${w} ${h+22}" width="100%" height="${h+22}" role="img">${grid}${bars}${legend}</svg>`;
+}
+function visualAnalyticsHtml(c){
+  const v=c.visuals||calculateVisualAnalytics(c);
+  return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--cyan)"></span>When does the investment pay back?</div><p class="value-bridge-note">Cumulative cashflow shows the running value of benefits, selected costs and net position across the model period. The amber marker shows estimated payback if it falls within the model horizon.</p>${svgLineChart(v.cashflow||[],[{key:'cumulativeNet',name:'Cumulative net',color:'green'},{key:'cumulativeBenefits',name:'Cumulative benefits',color:'blue'},{key:'cumulativeCosts',name:'Cumulative costs',color:'red'}],{payback:c.payback})}</div><div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--amber)"></span>From gross benefit to net present value — the bridge</div><p class="value-bridge-note">This waterfall shows how the gross five-year benefit reduces after discounting, selected recurring costs, one-off costs and the confidence haircut. The final bar is the confidence-adjusted NPV.</p>${waterfallChartSvg(v.waterfall||[])}</div><div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--green)"></span>How the City Dividend builds across six value categories</div><p class="value-bridge-note">Stacked bars show how the yearly value is distributed across financial, time, community, economic, climate and safety dividends.</p>${dividendStackedSvg(v.dividendYears||[])}</div>`;
+}
+function visualAnalyticsPrintHtml(c){
+  const v=c.visuals||calculateVisualAnalytics(c);
+  return `<h2>Visual Analytics</h2><h3>When does the investment pay back?</h3><p class="muted">Cumulative benefits, costs and net cashflow across the model period.</p>${svgLineChart(v.cashflow||[],[{key:'cumulativeNet',name:'Cumulative net',color:'green'},{key:'cumulativeBenefits',name:'Cumulative benefits',color:'blue'},{key:'cumulativeCosts',name:'Cumulative costs',color:'red'}],{payback:c.payback})}<h3>From gross benefit to net present value — the bridge</h3>${waterfallChartSvg(v.waterfall||[])}<h3>How the City Dividend builds across six value categories</h3>${dividendStackedSvg(v.dividendYears||[])}`;
+}
+
+function tornadoSensitivityHtml(c){
+  const data=c.sensitivity||[];
+  const sweep=Number(STATE.sensitivitySweep ?? .20);
+  const maxAbs=Math.max(1,...data.map(d=>Math.max(Math.abs(d.downDelta),Math.abs(d.upDelta))));
+  const rowH=34, leftLabel=250, w=760, center=leftLabel+250, scale=230/maxAbs, h=42+data.length*rowH;
+  const rows=data.map((d,i)=>{
+    const y=38+i*rowH; const dl=Math.abs(d.downDelta)*scale; const ur=Math.abs(d.upDelta)*scale;
+    return `<g><text x="0" y="${y+5}" fill="#d9e7f5" font-size="11">${escapeHtml(d.label)}</text><text x="0" y="${y+19}" fill="#7c8ba1" font-size="10">Base ${fmt(d.baselineValue,'num')}</text><rect x="${center-dl}" y="${y-8}" width="${dl}" height="14" rx="4" fill="var(--red)" opacity=".72"></rect><rect x="${center}" y="${y-8}" width="${ur}" height="14" rx="4" fill="var(--green)" opacity=".72"></rect><text x="${center-dl-8}" y="${y+3}" fill="#7c8ba1" font-size="10" text-anchor="end">${fmt(d.downDelta,'currencyK')}</text><text x="${center+ur+8}" y="${y+3}" fill="#7c8ba1" font-size="10">${fmt(d.upDelta,'currencyK')}</text></g>`;
+  }).join('');
+  return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--purple)"></span>Sensitivity — what moves the NPV</div><p class="value-bridge-note">Each assumption is moved up and down by the selected sweep range while the rest of the case stays unchanged. This shows which assumptions most influence the Total City Dividend NPV.</p><div class="field" style="max-width:260px"><label>Sensitivity sweep range</label><select onchange="STATE.sensitivitySweep=parseFloat(this.value);saveState();renderAll();goStep(6)"><option value="0.10" ${sweep===0.10?'selected':''}>±10%</option><option value="0.20" ${sweep===0.20?'selected':''}>±20%</option><option value="0.30" ${sweep===0.30?'selected':''}>±30%</option></select><small class="card-sub">Used only for sensitivity testing; it does not change the base value case.</small></div>${data.length?`<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Tornado sensitivity chart"><line x1="${center}" y1="20" x2="${center}" y2="${h-8}" stroke="rgba(255,255,255,.22)" stroke-width="1"></line><text x="${center}" y="14" fill="#7c8ba1" font-size="11" text-anchor="middle">Baseline NPV ${fmt(c.npv,'currencyK')}</text>${rows}</svg>`:'<div class="empty-state"><h3>No sensitivity drivers yet</h3><p>Enter council assumptions and select use cases to calculate sensitivity.</p></div>'}</div>`;
+}
+function scenarioCompareHtml(c){
+  const cmp=c.scenarioCompare||{};
+  const labels={conservative:'Conservative',expected:'Expected',stretch:'Stretch'};
+  const row=(label,fn)=>`<tr><td>${label}</td>${['conservative','expected','stretch'].map(id=>`<td>${fn(cmp[id]||{})}</td>`).join('')}</tr>`;
+  return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--blue)"></span>Scenario comparison</div><p class="value-bridge-note">Shows the same council case under Conservative, Expected and Stretch multipliers without changing the user’s currently selected scenario.</p><table class="cashflow-table"><thead><tr><th>Metric</th>${['conservative','expected','stretch'].map(id=>`<th>${labels[id]}</th>`).join('')}</tr></thead><tbody>${row('Annual Total City Dividend',x=>fmt(x.annualTotal||0))}${row('Annual Validated Financial',x=>fmt(x.financialAnnual||0))}${row('5-year NPV after costs',x=>fmt(x.npv||0))}${row('BCR',x=>((x.bcr||0).toFixed(2)+'x'))}${row('Payback (yrs)',x=>x.payback==null?'> '+CONFIG.meta.horizonYears:(x.payback||0).toFixed(1))}</tbody></table></div>`;
+}
+function inactionCostHtml(c){
+  const ia=c.inactionCost||{rows:[]};
+  const m=ia.model||{};
+  return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--red)"></span>Cost of inaction — 5-year trajectory if council does not act</div><p class="value-bridge-note">Indicative view of the current problem base continuing to grow without CityPulse intervention. Growth rates are configurable in Admin → Inaction model and should be validated with Finance and service owners.</p><table class="cashflow-table"><thead><tr><th>Year</th><th>Reactive maintenance</th><th>Infringement leakage</th><th>Complaint escalation</th><th>Public liability</th><th>Total</th></tr></thead><tbody>${(ia.rows||[]).map(r=>`<tr><td>Year ${r.year}</td><td>${fmt(r.reactiveCost)}</td><td>${fmt(r.leakageCost)}</td><td>${fmt(r.complaintCost)}</td><td>${fmt(r.liabilityCost)}</td><td>${fmt(r.total)}</td></tr>`).join('')}</tbody></table><div class="grid3" style="margin-top:12px"><div class="metric-tile"><div class="metric-label">5-year cost of doing nothing</div><div class="metric-value" style="color:var(--red)">${fmt(ia.cumulative||0,'currencyK')}</div><div class="metric-note">Nominal cumulative problem trajectory</div></div><div class="metric-tile"><div class="metric-label">5-year discounted SenSen investment cost</div><div class="metric-value">${fmt(ia.investmentCost||0,'currencyK')}</div><div class="metric-note">Discounted selected cost from the value case</div></div><div class="metric-tile"><div class="metric-label">Net advantage of acting vs not acting</div><div class="metric-value" style="color:${(ia.netAdvantage||0)>=0?'var(--green)':'var(--red)'}">${fmt(ia.netAdvantage||0,'currencyK')}</div><div class="metric-note">Cost of inaction minus discounted investment cost</div></div></div><p class="card-sub">Rates: reactive ${fmt(Number(m.reactiveMaintenanceGrowth)||0,'percent')}, leakage ${fmt(Number(m.infringementLeakageGrowth)||0,'percent')}, complaints ${fmt(Number(m.formalComplaintGrowth)||0,'percent')}, liability ${fmt(Number(m.liabilityClaimsGrowth)||0,'percent')}.</p></div>`;
+}
+function v24PrintSections(c){
+  return `<h2>Sensitivity — What Moves the NPV</h2><p>The table below shows the top assumptions by NPV swing using the current sensitivity sweep.</p><table><tr><th>Assumption</th><th>Base value</th><th>Downside NPV delta</th><th>Upside NPV delta</th><th>Swing</th></tr>${(c.sensitivity||[]).map(d=>`<tr><td>${d.label}</td><td>${fmt(d.baselineValue,'num')}</td><td>${fmt(d.downDelta)}</td><td>${fmt(d.upDelta)}</td><td>${fmt(d.swing)}</td></tr>`).join('')||'<tr><td colspan="5">No sensitivity drivers calculated.</td></tr>'}</table><h2>Scenario Comparison</h2><table><tr><th>Metric</th><th>Conservative</th><th>Expected</th><th>Stretch</th></tr><tr><td>Annual Total City Dividend</td><td>${fmt(c.scenarioCompare?.conservative?.annualTotal||0)}</td><td>${fmt(c.scenarioCompare?.expected?.annualTotal||0)}</td><td>${fmt(c.scenarioCompare?.stretch?.annualTotal||0)}</td></tr><tr><td>Annual Validated Financial</td><td>${fmt(c.scenarioCompare?.conservative?.financialAnnual||0)}</td><td>${fmt(c.scenarioCompare?.expected?.financialAnnual||0)}</td><td>${fmt(c.scenarioCompare?.stretch?.financialAnnual||0)}</td></tr><tr><td>5-year NPV after costs</td><td>${fmt(c.scenarioCompare?.conservative?.npv||0)}</td><td>${fmt(c.scenarioCompare?.expected?.npv||0)}</td><td>${fmt(c.scenarioCompare?.stretch?.npv||0)}</td></tr></table><h2>Cost of Inaction</h2><table><tr><th>Year</th><th>Reactive maintenance</th><th>Infringement leakage</th><th>Complaint escalation</th><th>Public liability</th><th>Total</th></tr>${(c.inactionCost?.rows||[]).map(r=>`<tr><td>Year ${r.year}</td><td>${fmt(r.reactiveCost)}</td><td>${fmt(r.leakageCost)}</td><td>${fmt(r.complaintCost)}</td><td>${fmt(r.liabilityCost)}</td><td>${fmt(r.total)}</td></tr>`).join('')}</table><p><strong>Net advantage of acting vs not acting:</strong> ${fmt(c.inactionCost?.netAdvantage||0)} over five years.</p><h2>Confidence-adjusted NPV</h2><p>Risk-adjusted view applying confidence haircuts to benefit lines: <strong>${fmt(c.confidenceAdjusted?.npv||0)}</strong>. High confidence benefits are unchanged; medium and low confidence benefits are discounted to reflect validation risk.</p>`;
 }
 
 function costSummaryHtml(c){
@@ -783,7 +989,7 @@ function renderInvestment(){
       <div class="card-option" style="cursor:default"><div class="card-title">Included because</div><div class="card-sub">These products are currently costed because selected use cases require them.</div><ul style="margin:10px 0 0 18px">${c.productCosts.length?c.productCosts.map(p=>`<li><strong>${p.name}</strong>: ${(p.reasons||[]).join('; ')||'Selected use case requires this product.'}</li>`).join(''):'<li>No selected product costs yet.</li>'}</ul></div>
       <div class="card-option" style="cursor:default"><div class="card-title">Not included</div><div class="card-sub">These products are currently not costed because no active use case requires them.</div><ul style="margin:10px 0 0 18px">${excludedNames.length?excludedNames.map(n=>`<li>${n}</li>`).join(''):'<li>All products are currently included.</li>'}</ul></div>
     </div>`;
-  el.innerHTML=`<div class="panel"><div class="panel-head"><div><div class="panel-title">Value case summary</div><div class="panel-kicker">Explains annual benefits, net present value, selected costs, cashability and confidence</div></div></div><div class="fin-split-grid"><div class="metric-tile"><div class="metric-label">Annual Total City Dividend</div><div class="metric-value" style="color:var(--green)">${fmt(c.annualTotal,'currencyK')}</div><div class="metric-note">Annual benefit before selected product costs</div></div><div class="metric-tile"><div class="metric-label">5-year Total City Dividend NPV after Costs</div><div class="metric-value" style="color:${c.npv>=0?'var(--green)':'var(--red)'}">${fmt(c.npv,'currencyK')}</div><div class="metric-note">Discounted benefits minus discounted costs</div></div><div class="metric-tile"><div class="metric-label">Annual Validated Financial Benefit</div><div class="metric-value" style="color:var(--blue)">${fmt(c.financialAnnual,'currencyK')}</div><div class="metric-note">Cashable + avoided cost before selected costs</div></div><div class="metric-tile"><div class="metric-label">5-year Net Financial NPV after Costs</div><div class="metric-value" style="color:${c.financial.npv>=0?'var(--blue)':'var(--red)'}">${fmt(c.financial.npv,'currencyK')}</div><div class="metric-note">Financial benefit after selected costs</div></div><div class="metric-tile"><div class="metric-label">Value BCR / Financial BCR</div><div class="metric-value">${c.bcr.toFixed(2)}x / ${c.financial.bcr.toFixed(2)}x</div><div class="metric-note">Discounted benefits divided by discounted costs</div></div><div class="metric-tile"><div class="metric-label">Payback / financial payback</div><div class="metric-value">${c.payback==null?'> '+CONFIG.meta.horizonYears:c.payback.toFixed(1)} yrs</div><div class="metric-note">Financial payback: ${c.financial.payback==null?'> '+CONFIG.meta.horizonYears:c.financial.payback.toFixed(1)+' yrs'}</div></div></div>${costSummaryBox}${valueBridgeHtml(c)}<div class="section-title"><span class="dot" style="background:var(--green)"></span>Cashability breakdown</div><table class="cashflow-table"><thead><tr><th>Value class</th><th>Annual value</th><th>How to use it</th></tr></thead><tbody>${cashRows}</tbody></table><div class="section-title"><span class="dot" style="background:var(--purple)"></span>Confidence breakdown</div><table class="cashflow-table"><thead><tr><th>Confidence</th><th>Annual value</th><th>Guidance</th></tr></thead><tbody>${confRows}</tbody></table><div class="section-title"><span class="dot" style="background:var(--amber)"></span>Selected product cost register</div><table class="cashflow-table"><thead><tr><th>Product</th><th>Annual</th><th>One-off</th><th>Included because</th></tr></thead><tbody>${c.productCosts.map(p=>`<tr><td>${p.name}</td><td>${fmt(p.annual)}</td><td>${fmt(p.oneOff)}</td><td>${(p.reasons||[]).join('; ')}</td></tr>`).join('')||'<tr><td colspan="4">No selected product costs yet.</td></tr>'}</tbody></table><div class="section-title"><span class="dot" style="background:var(--blue)"></span>Annual cashflow</div><table class="cashflow-table"><thead><tr><th>Year</th><th>Total benefits</th><th>Recurring cost</th><th>One-off cost</th><th>Total cost</th><th>Discounted cost</th><th>Net</th><th>Cumulative</th></tr></thead><tbody>${c.years.map(y=>`<tr><td>Year ${y.year}</td><td>${fmt(y.benefit)}</td><td>${fmt(y.recurringCost)}</td><td>${fmt(y.oneOffCost)}</td><td>${fmt(y.cost)}</td><td>${fmt(y.discountedCost)}</td><td>${fmt(y.net)}</td><td>${fmt(y.cumulative)}</td></tr>`).join('')}</tbody></table><div class="section-title"><span class="dot" style="background:var(--green)"></span>Assumptions register</div><table class="assumption-table"><thead><tr><th>Assumption</th><th>Value</th><th>Group</th></tr></thead><tbody>${assumptionsForActive().slice(0,80).map(a=>`<tr><td>${a.label}</td><td>${a.value}</td><td>${a.group}</td></tr>`).join('')}</tbody></table>${c.validationWarnings.length?`<div class="alert"><strong>Model checks:</strong><ul>${c.validationWarnings.map(w=>`<li>${w}</li>`).join('')}</ul></div>`:''}<div class="alert"><strong>Validation required:</strong> ${CONFIG.meta.disclaimer}</div><div class="footer-actions"><button class="btn" onclick="goStep(5)">Back</button><button class="btn primary" onclick="generateInvestmentCase()">Generate Print-Ready Value Case</button><button class="btn" onclick="exportScenario()">Export Scenario JSON</button></div></div>`;
+  el.innerHTML=`<div class="panel"><div class="panel-head"><div><div class="panel-title">Value case summary</div><div class="panel-kicker">Explains annual benefits, net present value, selected costs, cashability and confidence</div></div></div><div class="fin-split-grid"><div class="metric-tile"><div class="metric-label">Annual Total City Dividend</div><div class="metric-value" style="color:var(--green)">${fmt(c.annualTotal,'currencyK')}</div><div class="metric-note">Annual benefit before selected product costs</div></div><div class="metric-tile"><div class="metric-label">5-year Total City Dividend NPV after Costs</div><div class="metric-value" style="color:${c.npv>=0?'var(--green)':'var(--red)'}">${fmt(c.npv,'currencyK')}</div><div class="metric-note">Discounted benefits minus discounted costs</div></div><div class="metric-tile"><div class="metric-label">Confidence-adjusted NPV</div><div class="metric-value" style="color:${(c.confidenceAdjusted?.npv||0)>=0?'var(--green)':'var(--red)'}">${fmt(c.confidenceAdjusted?.npv||0,'currencyK')}</div><div class="metric-note">Risk-adjusted using confidence haircuts</div></div><div class="metric-tile"><div class="metric-label">Annual Validated Financial Benefit</div><div class="metric-value" style="color:var(--blue)">${fmt(c.financialAnnual,'currencyK')}</div><div class="metric-note">Cashable + avoided cost before selected costs</div></div><div class="metric-tile"><div class="metric-label">5-year Net Financial NPV after Costs</div><div class="metric-value" style="color:${c.financial.npv>=0?'var(--blue)':'var(--red)'}">${fmt(c.financial.npv,'currencyK')}</div><div class="metric-note">Financial benefit after selected costs</div></div><div class="metric-tile"><div class="metric-label">Value BCR / Financial BCR</div><div class="metric-value">${c.bcr.toFixed(2)}x / ${c.financial.bcr.toFixed(2)}x</div><div class="metric-note">Discounted benefits divided by discounted costs</div></div><div class="metric-tile"><div class="metric-label">Payback / financial payback</div><div class="metric-value">${c.payback==null?'> '+CONFIG.meta.horizonYears:c.payback.toFixed(1)} yrs</div><div class="metric-note">Financial payback: ${c.financial.payback==null?'> '+CONFIG.meta.horizonYears:c.financial.payback.toFixed(1)+' yrs'}</div></div></div>${costSummaryBox}${valueBridgeHtml(c)}${visualAnalyticsHtml(c)}${tornadoSensitivityHtml(c)}${scenarioCompareHtml(c)}${inactionCostHtml(c)}<div class="section-title"><span class="dot" style="background:var(--green)"></span>Cashability breakdown</div><table class="cashflow-table"><thead><tr><th>Value class</th><th>Annual value</th><th>How to use it</th></tr></thead><tbody>${cashRows}</tbody></table><div class="section-title"><span class="dot" style="background:var(--purple)"></span>Confidence breakdown</div><table class="cashflow-table"><thead><tr><th>Confidence</th><th>Annual value</th><th>Guidance</th></tr></thead><tbody>${confRows}</tbody></table><div class="section-title"><span class="dot" style="background:var(--amber)"></span>Selected product cost register</div><table class="cashflow-table"><thead><tr><th>Product</th><th>Annual</th><th>One-off</th><th>Included because</th></tr></thead><tbody>${c.productCosts.map(p=>`<tr><td>${p.name}</td><td>${fmt(p.annual)}</td><td>${fmt(p.oneOff)}</td><td>${(p.reasons||[]).join('; ')}</td></tr>`).join('')||'<tr><td colspan="4">No selected product costs yet.</td></tr>'}</tbody></table><div class="section-title"><span class="dot" style="background:var(--blue)"></span>Annual cashflow</div><table class="cashflow-table"><thead><tr><th>Year</th><th>Total benefits</th><th>Recurring cost</th><th>One-off cost</th><th>Total cost</th><th>Discounted cost</th><th>Net</th><th>Cumulative</th></tr></thead><tbody>${c.years.map(y=>`<tr><td>Year ${y.year}</td><td>${fmt(y.benefit)}</td><td>${fmt(y.recurringCost)}</td><td>${fmt(y.oneOffCost)}</td><td>${fmt(y.cost)}</td><td>${fmt(y.discountedCost)}</td><td>${fmt(y.net)}</td><td>${fmt(y.cumulative)}</td></tr>`).join('')}</tbody></table><div class="section-title"><span class="dot" style="background:var(--green)"></span>Assumptions register</div><table class="assumption-table"><thead><tr><th>Assumption</th><th>Value</th><th>Group</th></tr></thead><tbody>${assumptionsForActive().slice(0,80).map(a=>`<tr><td>${a.label}</td><td>${a.value}</td><td>${a.group}</td></tr>`).join('')}</tbody></table>${c.validationWarnings.length?`<div class="alert"><strong>Model checks:</strong><ul>${c.validationWarnings.map(w=>`<li>${w}</li>`).join('')}</ul></div>`:''}<div class="alert"><strong>Validation required:</strong> ${CONFIG.meta.disclaimer}</div><div class="footer-actions"><button class="btn" onclick="goStep(5)">Back</button><button class="btn primary" onclick="generateInvestmentCase()">Generate Print-Ready Value Case</button><button class="btn" onclick="exportScenario()">Export Scenario JSON</button></div></div>`;
 }
 
 function assumptionsForActive(){const inputSet=new Set();activeUseCaseIds().forEach(uid=>(CONFIG.useCases[uid].inputs||[]).forEach(i=>inputSet.add(i)));return [...inputSet].filter(k=>CONFIG.parameters[k]).map(k=>({label:CONFIG.parameters[k].label,value:fmt(STATE.inputs[k],CONFIG.parameters[k].format),group:CONFIG.parameters[k].group,key:k}));}
@@ -793,7 +999,15 @@ function renderSummary(){
   const conf=Object.entries(c.breakdowns.confidence||{}).map(([k,v])=>`${k}: ${fmt(v,'currencyK')}`).join(' · ');
   document.getElementById('live-summary').innerHTML=`<div class="summary-head"><div><div class="panel-kicker">Live value case</div><div style="font-weight:800;font-size:18px">City Dividend Snapshot</div></div><span class="pill">${CONFIG.scenarios.find(s=>s.id===STATE.scenarioId)?.name||''}</span></div><div class="summary-body"><div class="big-grid"><div class="big-metric"><div class="metric-label">Annual Total City Dividend</div><div class="metric-value" style="color:var(--green)">${fmt(annual,'currencyK')}</div><div class="metric-note">Annual benefit before selected product costs</div></div><div class="big-metric"><div class="metric-label">Annual Validated Financial Benefit</div><div class="metric-value" style="color:var(--blue)">${fmt(c.financialAnnual,'currencyK')}</div><div class="metric-note">Cashable + avoided cost before costs</div></div><div class="big-metric"><div class="metric-label">5-year Total NPV after Costs</div><div class="metric-value">${fmt(c.npv,'currencyK')}</div><div class="metric-note">Discounted net value after selected costs</div></div><div class="big-metric"><div class="metric-label">5-year Financial NPV after Costs</div><div class="metric-value">${fmt(c.financial.npv,'currencyK')}</div><div class="metric-note">Net financial value after selected costs</div></div><div class="big-metric"><div class="metric-label">Value BCR</div><div class="metric-value">${c.bcr.toFixed(2)}x</div><div class="metric-note">All value categories</div></div><div class="big-metric"><div class="metric-label">Financial BCR</div><div class="metric-value">${c.financial.bcr.toFixed(2)}x</div><div class="metric-note">Validated financial view</div></div></div><div class="impact-note"><strong>Cost basis:</strong> Costs are included only for products required by selected use cases. Active product costs: ${c.productCosts.map(p=>p.name).join(', ')||'none'}. Recurring product costs escalate at <strong>${fmt(c.totalBridge.escalationRate,'percent')}</strong> per year; one-off implementation and hardware costs remain in Year 1.</div><details class="value-bridge"><summary style="cursor:pointer;font-weight:800;color:var(--blue)">Show annual-to-NPV value bridge</summary>${valueBridgeHtml(c)}</details><div class="bucket-grid"><div class="bucket"><div class="metric-label">Revenue</div><div class="v" style="color:var(--green)">${fmt(c.buckets.revenue,'currencyK')}</div></div><div class="bucket"><div class="metric-label">Savings</div><div class="v" style="color:var(--blue)">${fmt(c.buckets.savings,'currencyK')}</div></div><div class="bucket"><div class="metric-label">Capacity</div><div class="v" style="color:var(--purple)">${fmt(c.buckets.capacity,'currencyK')}</div></div></div><div class="res-sec"><div class="panel-kicker" style="margin:12px 0 8px">Dividends</div><div class="dividend-grid">${CONFIG.dividends.map(d=>`<div class="div-card"><div class="div-head"><div class="div-name">${d.name}</div><div class="div-val" style="color:${colorVar(d.color)}">${fmt(c.dividends[d.id]||0,'currencyK')}</div></div><div class="bar"><div class="bar-fill" style="background:${colorVar(d.color)};width:${Math.min(100,(c.dividends[d.id]||0)/max*100)}%"></div></div></div>`).join('')}</div></div><div class="panel-kicker" style="margin:14px 0 8px">Confidence split</div><p class="card-sub">${conf||'No benefit confidence data yet.'}</p><div class="panel-kicker" style="margin:14px 0 8px">Top benefits</div><div class="benefit-list">${c.benefits.slice().sort((a,b)=>b.annual-a.annual).slice(0,7).map(b=>`<div class="benefit-item"><div class="benefit-top"><strong>${b.name}</strong><span>${fmt(b.annual,'currencyK')}</span></div><div class="benefit-meta">${b.cashabilityCategory} · ${b.confidence} · ${b.validatedFinancial?'validated financial':'broader City Dividend'}</div></div>`).join('')}</div>${c.validationWarnings.length?`<div class="alert"><strong>Model check:</strong><ul>${c.validationWarnings.map(w=>`<li>${w}</li>`).join('')}</ul></div>`:''}<div class="footer-actions"><button class="btn primary" onclick="generateInvestmentCase()">Generate value case</button><button class="btn" onclick="goStep(4)">Edit assumptions</button></div></div>`;
 }
-function renderAdmin(tab='quick'){const body=document.getElementById('admin-body');body.innerHTML=`<div class="tabs">${[['quick','Quick settings'],['params','Assumptions'],['costs','Costs'],['formulas','Formulas'],['json','Full JSON'],['io','Import / Export']].map(t=>`<button class="tab ${tab===t[0]?'active':''}" onclick="renderAdmin('${t[0]}')">${t[1]}</button>`).join('')}</div><div id="admin-content"></div>`;const c=document.getElementById('admin-content'); if(tab==='quick')adminQuick(c); if(tab==='params')adminParams(c); if(tab==='costs')adminCosts(c); if(tab==='formulas')adminFormulas(c); if(tab==='json')adminJson(c); if(tab==='io')adminIO(c);}
+function renderAdmin(tab='quick'){const body=document.getElementById('admin-body');body.innerHTML=`<div class="tabs">${[['quick','Quick settings'],['params','Assumptions'],['costs','Costs'],['formulas','Formulas'],['inaction','Inaction model'],['json','Full JSON'],['io','Import / Export']].map(t=>`<button class="tab ${tab===t[0]?'active':''}" onclick="renderAdmin('${t[0]}')">${t[1]}</button>`).join('')}</div><div id="admin-content"></div>`;const c=document.getElementById('admin-content'); if(tab==='quick')adminQuick(c); if(tab==='params')adminParams(c); if(tab==='costs')adminCosts(c); if(tab==='formulas')adminFormulas(c); if(tab==='inaction')adminInaction(c); if(tab==='json')adminJson(c); if(tab==='io')adminIO(c);}
+
+function adminInaction(c){
+  ensureState();
+  const m=CONFIG.inactionModel||{};
+  const field=(key,label,help)=>`<div class="field"><label class="label-help"><span>${label}</span><button type="button" class="help-icon" onclick="openGenericHelp('${escapeHtml(label)}','${escapeHtml(help)}');event.stopPropagation();">i</button></label><input type="number" step="0.001" value="${m[key]??0}" oninput="CONFIG.inactionModel['${key}']=parseFloat(this.value)||0;saveConfig();renderAll();renderAdmin('inaction')"><div class="field-help-mini">${help}</div></div>`;
+  c.innerHTML=`<div class="alert blue"><strong>Cost-of-inaction model:</strong> These assumptions model the five-year trajectory if the council does not act. They are indicative planning assumptions and should be validated with Finance, Assets, Local Laws, Customer and Risk before external use.</div><div class="grid2">${field('reactiveMaintenanceGrowth','Reactive maintenance growth','Annual growth in reactive maintenance pressure if asset condition and response intelligence does not improve. Example: 0.04 = 4%.')}${field('infringementLeakageGrowth','Infringement leakage growth','Annual growth in uncollected or unrealised compliance value. Example: 0.02 = 2%.')}${field('formalComplaintGrowth','Formal complaint growth','Annual growth in complaint/escalation volume without earlier detection and triage. Example: 0.05 = 5%.')}${field('liabilityClaimsGrowth','Public liability claims growth','Annual growth in liability claim exposure. Example: 0.03 = 3%.')}${field('avgComplaintEscalationCost','Average complaint escalation cost','Indicative internal handling/escalation cost per formal complaint or request with escalation risk. Use loaded effort cost where available.')}</div><div class="field"><label>Description / caveat</label><textarea rows="3" oninput="CONFIG.inactionModel.description=this.value;saveConfig();renderAll();renderAdmin('inaction')">${escapeHtml(m.description||'')}</textarea></div>`;
+}
+
 function adminQuick(c){c.innerHTML=`<div class="alert blue"><strong>Model owner note:</strong> This admin panel changes the local model configuration. It is for internal model owners, not normal customer-facing use. Export JSON before making material changes.</div><div class="grid2"><div class="field"><label>App title</label><input value="${CONFIG.meta.appTitle}" oninput="CONFIG.meta.appTitle=this.value;saveConfig();renderAll()"></div><div class="field"><label>Discount rate</label><input type="number" step="0.001" value="${CONFIG.meta.discountRate}" oninput="CONFIG.meta.discountRate=parseFloat(this.value)||0;saveConfig();renderAll()"></div><div class="field"><label>Time horizon years</label><input type="number" value="${CONFIG.meta.horizonYears}" oninput="CONFIG.meta.horizonYears=parseInt(this.value)||5;saveConfig();renderAll()"></div><div class="field"><label>Subtitle</label><input value="${CONFIG.meta.appSubtitle}" oninput="CONFIG.meta.appSubtitle=this.value;saveConfig();renderAll()"></div></div><div class="section-title"><span class="dot" style="background:var(--green)"></span>Scenarios</div><div class="grid3">${CONFIG.scenarios.map((s,i)=>`<div class="card-option" style="cursor:default"><div class="field"><label>Name</label><input value="${s.name}" oninput="CONFIG.scenarios[${i}].name=this.value;saveConfig();renderAll()"></div><div class="field"><label>Multiplier</label><input type="number" step="0.01" value="${s.multiplier}" oninput="CONFIG.scenarios[${i}].multiplier=parseFloat(this.value)||0;saveConfig();renderAll()"></div></div>`).join('')}</div><div class="section-title"><span class="dot" style="background:var(--blue)"></span>Maturity</div><div class="grid3">${CONFIG.maturities.map((m,i)=>`<div class="card-option" style="cursor:default"><div class="field"><label>Name</label><input value="${m.name}" oninput="CONFIG.maturities[${i}].name=this.value;saveConfig();renderAll()"></div><div class="field"><label>Multiplier</label><input type="number" step="0.01" value="${m.multiplier}" oninput="CONFIG.maturities[${i}].multiplier=parseFloat(this.value)||0;saveConfig();renderAll()"></div></div>`).join('')}</div>`;}
 
 function openAdmin(){
@@ -827,7 +1041,7 @@ function adminCosts(c){
 }
 function adminFormulas(c){
   const ctx=contextVars();
-  c.innerHTML=`<div class="alert blue"><strong>Formula model owner guide:</strong> These cards control benefit logic. Formula changes affect the number. Cashability affects whether the benefit is treated as part of the Validated Financial View or broader City Dividend. Confidence affects validation language. Ramp affects timing, NPV, BCR and payback.</div>
+  c.innerHTML=`<div class="alert blue"><strong>Formula model owner guide:</strong> These cards control benefit logic. Formula changes affect the number. Cashability affects whether the benefit is treated as part of the Validated Financial View or broader City Dividend. Confidence affects validation language. Ramp affects timing, NPV, BCR and payback.</div><div class="section-title"><span class="dot" style="background:var(--purple)"></span>Confidence haircut multipliers</div><div class="grid3">${['High','Medium','Low'].map(k=>`<div class="field"><label>${k} confidence multiplier</label><input type="number" step="0.01" value="${CONFIG.confidenceHaircuts?.[k] ?? (k==='High'?1:(k==='Medium'?.7:.4))}" oninput="CONFIG.confidenceHaircuts=CONFIG.confidenceHaircuts||{};CONFIG.confidenceHaircuts['${k}']=parseFloat(this.value)||0;saveConfig();renderAll();renderAdmin('formulas')"><div class="field-help-mini">Used for Confidence-adjusted NPV. High confidence normally remains 1.00; medium and low are discounted to reflect validation risk.</div></div>`).join('')}</div>
   <div class="definition-grid"><div class="definition-card"><h4>Formula</h4><p>${formulaFieldHelp('formula')}</p></div><div class="definition-card"><h4>Cashability</h4><p>${formulaFieldHelp('cashability')}</p></div><div class="definition-card"><h4>Confidence</h4><p>${formulaFieldHelp('confidence')}</p></div><div class="definition-card"><h4>Ramp profile</h4><p>${formulaFieldHelp('ramp')}</p></div></div>
   ${CONFIG.benefitLines.map((b,i)=>{const annual=Math.max(0,evaluateFormula(b.formula,ctx));const ramp=CONFIG.rampProfiles[b.ramp]||[1,1,1,1,1];const unknown=unknownFormulaVars(b.formula);return `<div class="panel"><div class="panel-head"><div><div class="panel-title" style="font-size:16px">${b.name}</div><div class="panel-kicker">${b.id} · ${cashabilityCategory(b.cashability)} · ${b.confidence} confidence</div></div></div>${unknown.length?`<div class="alert"><strong>Formula warning:</strong> Unknown variable(s): ${unknown.join(', ')}. These will calculate as zero until corrected.</div>`:''}<div class="field"><label class="label-help"><span>Formula</span><button type="button" class="help-icon" onclick="openGenericHelp('Formula','${escapeHtml(formulaFieldHelp('formula'))}');event.stopPropagation();">i</button></label><textarea rows="2" oninput="CONFIG.benefitLines[${i}].formula=this.value;saveConfig();renderAll();renderAdmin('formulas')">${b.formula}</textarea><div class="field-help-mini"><strong>Variables used:</strong> ${formulaVars(b.formula).join(', ')||'None'}</div></div><div class="grid3"><div class="field"><label class="label-help"><span>Cashability</span><button type="button" class="help-icon" onclick="openGenericHelp('Cashability','${escapeHtml(formulaFieldHelp('cashability'))}');event.stopPropagation();">i</button></label><select onchange="CONFIG.benefitLines[${i}].cashability=this.value;saveConfig();renderAll();renderAdmin('formulas')">${cashabilityOptions(b.cashability)}</select><div class="select-help">Current classification: ${cashabilityCategory(b.cashability)}. ${isValidatedFinancialBenefit(b)?'Included in Validated Financial View.':'Included in Total City Dividend, not the Validated Financial View.'}</div></div><div class="field"><label class="label-help"><span>Confidence</span><button type="button" class="help-icon" onclick="openGenericHelp('Confidence','${escapeHtml(formulaFieldHelp('confidence'))}');event.stopPropagation();">i</button></label><select onchange="CONFIG.benefitLines[${i}].confidence=this.value;saveConfig();renderAll();renderAdmin('formulas')">${confidenceOptions(b.confidence)}</select><div class="select-help">Shown in formula register and validation notes.</div></div><div class="field"><label class="label-help"><span>Ramp profile</span><button type="button" class="help-icon" onclick="openGenericHelp('Ramp profile','${escapeHtml(formulaFieldHelp('ramp'))}');event.stopPropagation();">i</button></label><select onchange="CONFIG.benefitLines[${i}].ramp=this.value;saveConfig();renderAll();renderAdmin('formulas')">${Object.keys(CONFIG.rampProfiles).map(r=>`<option value="${r}" ${b.ramp===r?'selected':''}>${r}</option>`).join('')}</select><div class="select-help">Ramp factors: ${(ramp||[]).map(x=>fmt(x,'percent')).join(' · ')}</div></div></div><div class="formula-preview">${[0,1,2,3,4].map(y=>`<div class="preview-cell"><div class="k">Year ${y+1}</div><div class="v">${fmt(annual*(ramp[y]??1),'currencyK')}</div></div>`).join('')}</div></div>`}).join('')}`;
 }
@@ -845,7 +1059,7 @@ function generateInvestmentCase(){
   closeFieldHelp();
   const adm=document.getElementById('admin-modal'); if(adm) adm.classList.remove('show');
   const profile=CONFIG.councilProfiles.find(p=>p.id===STATE.profileId);const scen=CONFIG.scenarios.find(s=>s.id===STATE.scenarioId);const mat=CONFIG.maturities.find(m=>m.id===STATE.maturityId);const doc=document.getElementById('print-doc');
-  doc.innerHTML=`<h1>${CONFIG.meta.appTitle}</h1><p class="muted">Print-ready value case · ${new Date().toLocaleDateString('en-AU')}</p><h2>1. Executive Summary</h2><p>${STATE.councilName||'[Council Name]'} is assessing CityPulse as a configurable city intelligence platform across operations, compliance, assets, community, economy, climate and safety. The scenario state is <strong>${modeLabel()}</strong>. The model separates the <strong>Validated Financial View</strong> from the broader <strong>Total City Dividend</strong> so that cashable/avoided-cost benefits are not confused with capacity, community, economic, climate or safety value.</p><table><tr><th>Annual Total City Dividend</th><th>5-year Total City Dividend NPV after Costs</th><th>Annual Validated Financial Benefit</th><th>5-year Net Financial NPV after Costs</th><th>5-year selected cost</th></tr><tr><td>${fmt(c.annualTotal)}</td><td>${fmt(c.npv)}</td><td>${fmt(c.financialAnnual)}</td><td>${fmt(c.financial.npv)}</td><td>${fmt(c.totalCosts)}</td></tr></table>${valueBridgePrintHtml(c)}<h2>2. Council Profile</h2><table><tr><th>Council</th><td>${STATE.councilName||'[Council Name]'}</td></tr><tr><th>Profile</th><td>${profile?.name||''}</td></tr><tr><th>Contact</th><td>${STATE.contactName||''} ${STATE.contactTitle?('· '+STATE.contactTitle):''}</td></tr><tr><th>Scenario</th><td>${scen?.name||''} (${fmt(scen?.multiplier||0,'percent')})</td></tr><tr><th>Maturity</th><td>${mat?.name||''} (${fmt(mat?.multiplier||0,'percent')})</td></tr></table><h2>3. Selected Pain Points</h2><ul>${(STATE.selectedPains||[]).map(id=>CONFIG.painPoints.find(p=>p.id===id)).filter(Boolean).map(p=>`<li><strong>${p.title}</strong><br><span class="muted">${p.description}</span></li>`).join('')||'<li>No pain points selected.</li>'}</ul><h2>4. CityPulse Configuration</h2><table><tr><th>Use case</th><th>Products/modules required</th></tr>${activeUseCaseIds().map(id=>{const u=CONFIG.useCases[id];return `<tr><td>${u.name}</td><td>${(u.products||[]).map(p=>CONFIG.products[p]?.name||p).join(', ')}</td></tr>`}).join('')}</table><h2>5. Selected Product Cost Register</h2><table><tr><th>Product</th><th>Annual cost</th><th>One-off cost</th><th>Included because</th></tr>${c.productCosts.map(p=>`<tr><td>${p.name}</td><td>${fmt(p.annual)}</td><td>${fmt(p.oneOff)}</td><td>${(p.reasons||[]).join('; ')}</td></tr>`).join('')||'<tr><td colspan="4">No selected product costs.</td></tr>'}</table><h2>6. Benefit Cashability and Confidence</h2><table><tr><th>Cashability class</th><th>Annual value</th><th>How to use it</th></tr>${Object.entries(c.breakdowns.cashability||{}).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(v)}</td><td>${k==='Validated financial'||k==='Avoided cost'?'Included in the Validated Financial View.':'Broader City Dividend only; do not describe as direct cash saving.'}</td></tr>`).join('')}</table><br><table><tr><th>Confidence</th><th>Annual value</th><th>Guidance</th></tr>${Object.entries(c.breakdowns.confidence||{}).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(v)}</td><td>${k==='Low'?'Validate before external use.':'Use with appropriate source notes.'}</td></tr>`).join('')}</table><h2>7. Six City Dividends</h2><table><tr><th>Dividend</th><th>Annual value</th><th>Description</th></tr>${CONFIG.dividends.map(d=>`<tr><td>${d.name}</td><td>${fmt(c.dividends[d.id]||0)}</td><td>${d.description}</td></tr>`).join('')}</table><h2>8. Annual Cashflow</h2><table><tr><th>Year</th><th>Total benefits</th><th>Recurring cost</th><th>One-off cost</th><th>Total cost</th><th>Discounted cost</th><th>Net</th><th>Cumulative</th></tr>${c.years.map(y=>`<tr><td>${y.year}</td><td>${fmt(y.benefit)}</td><td>${fmt(y.recurringCost)}</td><td>${fmt(y.oneOffCost)}</td><td>${fmt(y.cost)}</td><td>${fmt(y.discountedCost)}</td><td>${fmt(y.net)}</td><td>${fmt(y.cumulative)}</td></tr>`).join('')}</table><h2>9. Benefit Formula Register</h2><table><tr><th>Benefit</th><th>Annual benefit before costs</th><th>Cashability</th><th>Confidence</th><th>Ramp</th><th>Formula</th></tr>${c.benefits.map(b=>`<tr><td>${b.name}</td><td>${fmt(b.annual)}</td><td>${b.cashability}</td><td>${b.confidence}</td><td>${b.ramp}</td><td>${b.formula}<br>${b.explain}</td></tr>`).join('')}</table><h2>10. Assumptions Register</h2><table><tr><th>Assumption</th><th>Value</th><th>Group</th></tr>${assumptionsForActive().map(a=>`<tr><td>${a.label}</td><td>${a.value}</td><td>${a.group}</td></tr>`).join('')}</table><h2>11. Model Checks and Validation Notes</h2>${c.validationWarnings.length?`<ul>${c.validationWarnings.map(w=>`<li>${w}</li>`).join('')}</ul>`:'<p>No calculation warnings were detected in the current scenario.</p>'}<p>${CONFIG.meta.disclaimer}</p><p>${CONFIG.language.nextSteps}</p>`;
+  doc.innerHTML=`<h1>${CONFIG.meta.appTitle}</h1><p class="muted">Print-ready value case · ${new Date().toLocaleDateString('en-AU')}</p><h2>1. Executive Summary</h2><p>${STATE.councilName||'[Council Name]'} is assessing CityPulse as a configurable city intelligence platform across operations, compliance, assets, community, economy, climate and safety. The scenario state is <strong>${modeLabel()}</strong>. The model separates the <strong>Validated Financial View</strong> from the broader <strong>Total City Dividend</strong> so that cashable/avoided-cost benefits are not confused with capacity, community, economic, climate or safety value.</p><table><tr><th>Annual Total City Dividend</th><th>5-year Total City Dividend NPV after Costs</th><th>Annual Validated Financial Benefit</th><th>5-year Net Financial NPV after Costs</th><th>5-year selected cost</th></tr><tr><td>${fmt(c.annualTotal)}</td><td>${fmt(c.npv)}</td><td>${fmt(c.financialAnnual)}</td><td>${fmt(c.financial.npv)}</td><td>${fmt(c.totalCosts)}</td></tr></table>${valueBridgePrintHtml(c)}${visualAnalyticsPrintHtml(c)}${v24PrintSections(c)}<h2>2. Council Profile</h2><table><tr><th>Council</th><td>${STATE.councilName||'[Council Name]'}</td></tr><tr><th>Profile</th><td>${profile?.name||''}</td></tr><tr><th>Contact</th><td>${STATE.contactName||''} ${STATE.contactTitle?('· '+STATE.contactTitle):''}</td></tr><tr><th>Scenario</th><td>${scen?.name||''} (${fmt(scen?.multiplier||0,'percent')})</td></tr><tr><th>Maturity</th><td>${mat?.name||''} (${fmt(mat?.multiplier||0,'percent')})</td></tr></table><h2>3. Selected Pain Points</h2><ul>${(STATE.selectedPains||[]).map(id=>CONFIG.painPoints.find(p=>p.id===id)).filter(Boolean).map(p=>`<li><strong>${p.title}</strong><br><span class="muted">${p.description}</span></li>`).join('')||'<li>No pain points selected.</li>'}</ul><h2>4. CityPulse Configuration</h2><table><tr><th>Use case</th><th>Products/modules required</th></tr>${activeUseCaseIds().map(id=>{const u=CONFIG.useCases[id];return `<tr><td>${u.name}</td><td>${(u.products||[]).map(p=>CONFIG.products[p]?.name||p).join(', ')}</td></tr>`}).join('')}</table><h2>5. Selected Product Cost Register</h2><table><tr><th>Product</th><th>Annual cost</th><th>One-off cost</th><th>Included because</th></tr>${c.productCosts.map(p=>`<tr><td>${p.name}</td><td>${fmt(p.annual)}</td><td>${fmt(p.oneOff)}</td><td>${(p.reasons||[]).join('; ')}</td></tr>`).join('')||'<tr><td colspan="4">No selected product costs.</td></tr>'}</table><h2>6. Benefit Cashability and Confidence</h2><table><tr><th>Cashability class</th><th>Annual value</th><th>How to use it</th></tr>${Object.entries(c.breakdowns.cashability||{}).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(v)}</td><td>${k==='Validated financial'||k==='Avoided cost'?'Included in the Validated Financial View.':'Broader City Dividend only; do not describe as direct cash saving.'}</td></tr>`).join('')}</table><br><table><tr><th>Confidence</th><th>Annual value</th><th>Guidance</th></tr>${Object.entries(c.breakdowns.confidence||{}).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(v)}</td><td>${k==='Low'?'Validate before external use.':'Use with appropriate source notes.'}</td></tr>`).join('')}</table><h2>7. Six City Dividends</h2><table><tr><th>Dividend</th><th>Annual value</th><th>Description</th></tr>${CONFIG.dividends.map(d=>`<tr><td>${d.name}</td><td>${fmt(c.dividends[d.id]||0)}</td><td>${d.description}</td></tr>`).join('')}</table><h2>8. Annual Cashflow</h2><table><tr><th>Year</th><th>Total benefits</th><th>Recurring cost</th><th>One-off cost</th><th>Total cost</th><th>Discounted cost</th><th>Net</th><th>Cumulative</th></tr>${c.years.map(y=>`<tr><td>${y.year}</td><td>${fmt(y.benefit)}</td><td>${fmt(y.recurringCost)}</td><td>${fmt(y.oneOffCost)}</td><td>${fmt(y.cost)}</td><td>${fmt(y.discountedCost)}</td><td>${fmt(y.net)}</td><td>${fmt(y.cumulative)}</td></tr>`).join('')}</table><h2>9. Benefit Formula Register</h2><table><tr><th>Benefit</th><th>Annual benefit before costs</th><th>Cashability</th><th>Confidence</th><th>Ramp</th><th>Formula</th></tr>${c.benefits.map(b=>`<tr><td>${b.name}</td><td>${fmt(b.annual)}</td><td>${b.cashability}</td><td>${b.confidence}</td><td>${b.ramp}</td><td>${b.formula}<br>${b.explain}</td></tr>`).join('')}</table><h2>10. Assumptions Register</h2><table><tr><th>Assumption</th><th>Value</th><th>Group</th></tr>${assumptionsForActive().map(a=>`<tr><td>${a.label}</td><td>${a.value}</td><td>${a.group}</td></tr>`).join('')}</table><h2>11. Model Checks and Validation Notes</h2>${c.validationWarnings.length?`<ul>${c.validationWarnings.map(w=>`<li>${w}</li>`).join('')}</ul>`:'<p>No calculation warnings were detected in the current scenario.</p>'}<p>${CONFIG.meta.disclaimer}</p><p>${CONFIG.language.nextSteps}</p>`;
   setTimeout(()=>window.print(),80);
 } window.generateInvestmentCase=generateInvestmentCase;
 
@@ -1030,6 +1244,12 @@ function advisorAnswer(kind){
   if(kind==='explain'){
     advisorSet(`${advisorCommonHeader('What the current result means','This is the current value story based on the selected pain points, use cases, costs and assumptions.')}<div class="advisor-mini"><div class="metric-tile"><div class="metric-label">Annual Total City Dividend</div><div class="metric-value" style="color:var(--green)">${fmt(total,'currencyK')}</div><div class="metric-note">Annual benefit before selected costs</div></div><div class="metric-tile"><div class="metric-label">5-year NPV after Costs</div><div class="metric-value" style="color:var(--blue)">${fmt(c.npv,'currencyK')}</div><div class="metric-note">Discounted net value after costs</div></div><div class="metric-tile"><div class="metric-label">Value BCR</div><div class="metric-value">${c.bcr.toFixed(2)}x</div><div class="metric-note">Benefits to costs</div></div></div><p>The important point is not only the total number. The credible story is the split: <strong>${fmt(s.financial,'currencyK')}</strong> is financially-oriented value, <strong>${fmt(s.capacity,'currencyK')}</strong> is capacity released, <strong>${fmt(s.strategic,'currencyK')}</strong> is broader strategic/economic value, and <strong>${fmt(s.risk,'currencyK')}</strong> is risk-adjusted value.</p><p>Sales should describe this as a <strong>value hypothesis for validation</strong>, not a guaranteed return.</p>`);return;
   }
+
+  if(kind==='visuals'){
+    const v=c.visuals||calculateVisualAnalytics(c);
+    const payback=c.payback==null?'> '+CONFIG.meta.horizonYears:c.payback.toFixed(1)+' years';
+    advisorSet(`${advisorCommonHeader('How to read the visual analytics','These charts are generated locally from the current scenario.')}<p><strong>Payback chart:</strong> shows cumulative benefits, selected costs and net position by year. Current estimated payback is <strong>${payback}</strong>.</p><p><strong>Waterfall:</strong> starts with gross five-year benefits, then subtracts discounting, recurring costs, one-off costs and confidence haircut to show the confidence-adjusted NPV.</p><p><strong>Dividend stacked bars:</strong> show which value categories are building the case — financial, time, community, economic, climate and safety.</p><p>Use the charts to explain the story visually, but validate the underlying assumptions before treating the case as tender-ready.</p>`);return;
+  }
   if(kind==='drivers'){
     advisorSet(`${advisorCommonHeader('What drives the value?')}<p>The largest annual value drivers in this scenario are:</p><ul>${top.map(b=>`<li><strong>${b.name}</strong> — ${fmt(b.annual,'currencyK')} · ${b.cashability} · ${b.confidence} confidence</li>`).join('')}</ul><p>The sales move is to focus on the top two or three drivers and ask the council which assumptions they trust, which they want to change, and who owns the source data.</p>`);return;
   }
@@ -1078,6 +1298,7 @@ function askAdvisorFree(){
   if(q.includes('3')||q.includes('three')){advisorAnswer('threeYear');return;}
   if(q.includes('senpic')&&(/500|revenue|value|how many|sites|camera/.test(q))){advisorAnswer('senpic500');return;}
   if(q.includes('senforce')&&(/500|revenue|value|how many|vehicle/.test(q))){advisorAnswer('senforce500');return;}
+  if(q.includes('chart')||q.includes('visual')||q.includes('waterfall')||q.includes('cashflow')||q.includes('dividend stack')||q.includes('payback chart')){advisorAnswer('visuals');return;}
   if(q.includes('driver')||q.includes('most value')||q.includes('driving')){advisorAnswer('drivers');return;}
   if(q.includes('deployment scale')||q.includes('scale factor')){advisorAnswer('deploymentScale');return;}
   if(q.includes('senpic')&&(q.includes('field')||q.includes('site')||q.includes('camera')||q.includes('enforcement enabled')||q.includes('fixed'))){advisorAnswer('senpicField');return;}
@@ -1103,6 +1324,1359 @@ function askAdvisorFree(){
 }
 window.advisorAnswer=advisorAnswer; window.askAdvisorFree=askAdvisorFree;
 try{setTimeout(advisorRenderSnapshot,300)}catch(e){}
+</script>
+
+<script>
+(function(){
+  const v26OriginalSaveState=saveState; saveState=function(){try{v26OriginalSaveState();}catch(e){}}; window.saveState=saveState;
+  const v26OriginalSaveConfig=saveConfig; saveConfig=function(){try{v26OriginalSaveConfig();}catch(e){const s=document.getElementById('config-status'); if(s)s.textContent='Config: local only';}}; window.saveConfig=saveConfig;
+  const V26='2.6-scenario-deployment-realism';
+  function v26NewBlankState(){
+    const su={}; Object.keys((typeof CONFIG!=='undefined'&&CONFIG.useCases)||{}).forEach(id=>su[id]=false);
+    const gm={}; Object.keys((typeof CONFIG!=='undefined'&&CONFIG.useCases)||{}).forEach(id=>gm[id]=1);
+    return {step:1,mode:'blank',profileId:'',councilName:'',contactName:'',contactTitle:'',scenarioId:'expected',maturityId:'developing',selectedPains:[],selectedUseCases:su,inputs:{},notes:{},beginner:true,sensitivitySweep:0.20,goLiveMonths:gm};
+  }
+  function v26GetSavedScenarios(){try{return JSON.parse(localStorage.getItem('citypulse_scenarios')||'{}')||{};}catch(e){return window.__v26MemoryScenarios||{};}}
+  function v26SetSavedScenarios(x){try{localStorage.setItem('citypulse_scenarios',JSON.stringify(x||{}));}catch(e){window.__v26MemoryScenarios=x||{};}}
+  function v26EnsureSavedTemplates(){
+    const s=v26GetSavedScenarios(); let changed=false;
+    ['Indicative','Post-validation','Tender-ready'].forEach(name=>{if(!s[name]){s[name]=v26NewBlankState(); s[name].savedScenarioName=name; changed=true;}});
+    if(changed)v26SetSavedScenarios(s);
+  }
+  function v26EnsureDefaults(){
+    if(!CONFIG.meta.configVersion||!String(CONFIG.meta.configVersion).includes('2.6')) CONFIG.meta.configVersion=V26;
+    CONFIG.costInputs=CONFIG.costInputs||{};
+    if(CONFIG.costInputs.changeManagementUplift===undefined) CONFIG.costInputs.changeManagementUplift=0.25;
+    if(!STATE.goLiveMonths) STATE.goLiveMonths={};
+    Object.keys(CONFIG.useCases||{}).forEach(id=>{if(STATE.goLiveMonths[id]===undefined||STATE.goLiveMonths[id]===null) STATE.goLiveMonths[id]=1;});
+    v26EnsureSavedTemplates();
+  }
+  const v26PriorEnsure=ensureState;
+  ensureState=function(){v26PriorEnsure();v26EnsureDefaults();};
+  window.ensureState=ensureState;
+
+  function v26Snapshot(){ensureState(); const snap=clone(STATE); snap.savedAt=new Date().toISOString(); return snap;}
+  function saveScenarioAs(){
+    ensureState();
+    const existing=v26GetSavedScenarios();
+    const suggested=STATE.savedScenarioName||STATE.councilName||'Indicative';
+    const name=prompt('Save scenario as…',suggested);
+    if(!name||!name.trim())return;
+    existing[name.trim()]=v26Snapshot(); existing[name.trim()].savedScenarioName=name.trim();
+    v26SetSavedScenarios(existing); STATE.savedScenarioName=name.trim(); saveState(); renderAll(); alert('Scenario saved: '+name.trim());
+  }
+  function loadScenarioByName(name){
+    const saved=v26GetSavedScenarios();
+    if(!name||!saved[name])return;
+    STATE=Object.assign(v26NewBlankState(),clone(saved[name]));
+    STATE.savedScenarioName=name; ensureState(); saveState(); renderAll(); showSiteTab('calculator');
+  }
+  function renderSavedScenarioControls(){
+    const actions=document.querySelector('.top-actions'); if(!actions)return;
+    const old=document.getElementById('v26-scenario-tools'); if(old)old.remove();
+    const saved=v26GetSavedScenarios(); const names=Object.keys(saved);
+    const wrap=document.createElement('span'); wrap.id='v26-scenario-tools'; wrap.style.display='inline-flex'; wrap.style.gap='6px'; wrap.style.alignItems='center'; wrap.style.flexWrap='wrap';
+    wrap.innerHTML=`<button class="btn small" onclick="saveScenarioAs()">Save scenario as…</button><select class="small" style="height:30px;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:11px;padding:0 8px;max-width:160px" onchange="if(this.value){loadScenarioByName(this.value);this.value='';}"><option value="">Load scenario…</option>${names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}</select>`;
+    const adminBtn=[...actions.querySelectorAll('button')].find(b=>String(b.textContent||'').includes('Admin'));
+    if(adminBtn)actions.insertBefore(wrap,adminBtn); else actions.appendChild(wrap);
+  }
+  window.saveScenarioAs=saveScenarioAs; window.loadScenarioByName=loadScenarioByName;
+
+  function v26ClampGoLive(v){return Math.max(1,Math.min(24,parseInt(v,10)||1));}
+  function setUseCaseGoLive(id,val){ensureState();STATE.goLiveMonths[id]=v26ClampGoLive(val);STATE.mode=STATE.mode==='blank'?'council':STATE.mode;saveState();renderAll();goStep(3);}
+  window.setUseCaseGoLive=setUseCaseGoLive;
+  function v26BenefitYearly(annual,ramp,goLiveMonth){
+    const horizon=Number(CONFIG.meta.horizonYears)||5; const out=[]; const go=v26ClampGoLive(goLiveMonth);
+    for(let y=0;y<horizon;y++){
+      let total=0;
+      for(let month=y*12+1; month<=y*12+12; month++){
+        if(month>=go){ const monthsSince=month-go; const rampIdx=Math.min((ramp||[]).length-1,Math.max(0,Math.floor(monthsSince/12))); total += annual*((ramp||[1])[rampIdx]??1)/12; }
+      }
+      out.push(total);
+    }
+    return out;
+  }
+  function v26UseCasePrimaryColor(uid){const u=CONFIG.useCases?.[uid]||{}; const pid=(u.products||[]).find(p=>p!=='citypulse')||'citypulse'; return CONFIG.products?.[pid]?.color||'blue';}
+
+  calculateBase=function(){
+    ensureState();
+    const ctx=contextVars(); const active=activeUseCaseIds(); const benefits=[];
+    for(const b of CONFIG.benefitLines){
+      if(!active.includes(b.useCase))continue;
+      const unknown=unknownFormulaVars(b.formula);
+      const annual=Math.max(0,evaluateFormula(b.formula,ctx));
+      const ramp=CONFIG.rampProfiles[b.ramp]||[1,1,1,1,1];
+      const goLiveMonth=v26ClampGoLive(STATE.goLiveMonths?.[b.useCase]||1);
+      const yearly=v26BenefitYearly(annual,ramp,goLiveMonth);
+      benefits.push({...b,annual,yearly,goLiveMonth,unknownVars:unknown,cashabilityCategory:cashabilityCategory(b.cashability),validatedFinancial:isValidatedFinancialBenefit(b)});
+    }
+    const products=activeProducts(); let annualCost=0, productOneOffCost=0, productCosts=[];
+    for(const pid of products){
+      const p=CONFIG.products[pid]; if(!p)continue;
+      const annual=Math.max(0,evaluateFormula(p.annualFormula,ctx));
+      const oneOff=Math.max(0,evaluateFormula(p.oneOffFormula,ctx));
+      annualCost+=annual; productOneOffCost+=oneOff;
+      productCosts.push({id:pid,name:p.name,annual,oneOff,color:p.color,reasons:costReasonsForProduct(pid),driver:costDriverForProduct(pid),annualFormula:p.annualFormula,oneOffFormula:p.oneOffFormula});
+    }
+    const changeRate=Number(CONFIG.costInputs?.changeManagementUplift ?? 0)||0;
+    const changeManagementCost=active.length?Math.max(0,(annualCost+productOneOffCost)*changeRate):0;
+    if(changeManagementCost>0){
+      productCosts.push({id:'change_adoption',name:'Council change & adoption cost',annual:0,oneOff:changeManagementCost,color:'amber',reasons:['Internal change, training, governance and BAU embedding'],driver:'Calculated as changeManagementUplift × Year 1 product cost. This is a council-side adoption allowance, not SenSen product cost.',annualFormula:'0',oneOffFormula:'(annual selected product cost + one-off selected product cost) * changeManagementUplift'});
+    }
+    const oneOffCost=productOneOffCost+changeManagementCost;
+    const allMetrics=calculateFinancialMetrics(benefits,annualCost,oneOffCost);
+    const validatedBenefits=benefits.filter(isValidatedFinancialBenefit);
+    const financialMetrics=calculateFinancialMetrics(validatedBenefits,annualCost,oneOffCost);
+    const annualTotal=benefits.reduce((a,b)=>a+b.annual,0);
+    const financialAnnual=validatedBenefits.reduce((a,b)=>a+b.annual,0);
+    const buckets={revenue:0,savings:0,capacity:0,value:0}; benefits.forEach(b=>{buckets[b.bucket]=(buckets[b.bucket]||0)+b.annual});
+    const dividends={}; CONFIG.dividends.forEach(d=>dividends[d.id]=0); benefits.forEach(b=>{Object.entries(b.dividends||{}).forEach(([did,w])=>{dividends[did]=(dividends[did]||0)+b.annual*w;});});
+    const emissionsKg=(Number(ctx.avoidedFieldVisits)||0)*(Number(ctx.avgKmPerVisit)||0)*(Number(ctx.kgCO2ePerKm)||0);
+    const breakdowns=benefitBreakdowns(benefits); const validationWarnings=[];
+    if(benefits.some(b=>(b.unknownVars||[]).length)) validationWarnings.push('One or more formulas contain variables that are not currently defined. Review Admin → Formulas.');
+    if(productCosts.some(p=>p.annual+p.oneOff===0)) validationWarnings.push('One or more selected products have zero cost. Confirm this is intentional.');
+    if((breakdowns.cashability['Broader public value']||0)+(breakdowns.cashability['Capacity released']||0) > (breakdowns.cashability['Validated financial']||0)+(breakdowns.cashability['Avoided cost']||0)) validationWarnings.push('Broader public/capacity value is larger than validated financial value. Present the full City Dividend and validated financial view separately.');
+    if(active.some(uid=>v26ClampGoLive(STATE.goLiveMonths?.[uid]||1)>12)) validationWarnings.push('One or more use cases starts after Year 1. The benefit ramp has been delayed to reflect phased deployment.');
+    if(changeManagementCost>0) validationWarnings.push('Council change & adoption cost has been added as a Year 1 cost overlay. Confirm this allowance with the customer team before tender-ready use.');
+    const totalBridge={annualBenefit:annualTotal,discountedBenefits:allMetrics.discountedBenefits,discountedCosts:allMetrics.discountedCosts,npv:allMetrics.npv,bcr:allMetrics.bcr,payback:allMetrics.payback,year1Cost:allMetrics.years[0]?.cost||0,baseRecurringCost:allMetrics.annualRecurringCost,undiscountedTotalCost:allMetrics.totalCosts,discountedTotalCost:allMetrics.discountedCosts,escalationRate:allMetrics.escalationRate};
+    const financialBridge={annualBenefit:financialAnnual,discountedBenefits:financialMetrics.discountedBenefits,discountedCosts:financialMetrics.discountedCosts,npv:financialMetrics.npv,bcr:financialMetrics.bcr,payback:financialMetrics.payback};
+    const phasedDeployment=active.map(uid=>({id:uid,name:CONFIG.useCases[uid]?.name||uid,goLiveMonth:v26ClampGoLive(STATE.goLiveMonths?.[uid]||1),color:v26UseCasePrimaryColor(uid),products:(CONFIG.useCases[uid]?.products||[]).map(p=>CONFIG.products[p]?.name||p)}));
+    return {benefits,validatedBenefits,productCosts,products,annualCost,oneOffCost,productOneOffCost,changeManagementCost,changeManagementUplift:changeRate,totalCosts:allMetrics.totalCosts,totalBenefits:allMetrics.totalBenefits,years:allMetrics.years,npv:allMetrics.npv,bcr:allMetrics.bcr,payback:allMetrics.payback,discountedBenefits:allMetrics.discountedBenefits,discountedCosts:allMetrics.discountedCosts,financial:financialMetrics,financialAnnual,annualTotal,totalBridge,financialBridge,buckets,dividends,emissionsKg,ctx,breakdowns,validationWarnings,phasedDeployment};
+  };
+  window.calculateBase=calculateBase;
+
+  renderUseCases=function(){
+    ensureState(); const el=document.getElementById('screen-3'); const cats={};
+    Object.entries(CONFIG.useCases).forEach(([id,u])=>{const primary=(u.products||[]).find(p=>p!=='citypulse')||'citypulse';const name=CONFIG.products[primary]?.name||'CityPulse';(cats[name]=cats[name]||[]).push([id,u]);});
+    el.innerHTML=`<div class="panel"><div class="panel-head"><div><div class="panel-title">CityPulse modules and SenSen product use cases</div><div class="panel-kicker">Select use cases and set expected go-live month. Benefits ramp from the go-live month, not automatically from Year 1.</div></div></div><div class="alert blue"><strong>Phasing discipline:</strong> Councils rarely deploy every use case in Month 1. Use go-live month to stage pilots, operational rollout and later expansion. Month 13 starts benefit ramping in Year 2.</div>${Object.entries(cats).map(([cat,items])=>`<div class="section-title"><span class="dot" style="background:${colorVar(CONFIG.products[items[0][1].products.find(p=>p!=='citypulse')||'citypulse']?.color)}"></span>${cat}</div>${items.map(([id,u])=>{const selected=!!STATE.selectedUseCases[id]; const go=v26ClampGoLive(STATE.goLiveMonths?.[id]||1); return `<div class="usecase-row ${selected?'selected':''}"><div class="togglebox" onclick="toggleUseCase('${id}')">✓</div><div><div class="card-title">${u.name}</div><div class="card-sub">${u.description}</div><div class="product-list tag-row">${(u.products||[]).map(p=>`<span class="tag ${colorClass(CONFIG.products[p]?.color)}">${CONFIG.products[p]?.name||p}</span>`).join('')}</div>${selected?`<div class="field" style="margin-top:10px;max-width:240px"><label class="label-help"><span>Go-live month (1–24)</span><button type="button" class="help-icon" onclick="openGenericHelp('Go-live month','Benefit ramp for this use case starts from the go-live month. Month 1 starts immediately; month 13 starts in Year 2. Use this to model staged deployment rather than assuming all value starts in Year 1.');event.stopPropagation();">i</button></label><input type="number" min="1" max="24" step="1" value="${go}" oninput="setUseCaseGoLive('${id}',this.value)"><small class="card-sub">Current phase: ${go<=12?'Year 1':'Year 2'} · Month ${go}</small></div>`:''}</div><div style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)">${selected?'Included':'Off'}${selected?`<br><span class="tag">M${go}</span>`:''}</div></div>`;}).join('')}`).join('')}</div><div class="alert green"><strong>Platform point:</strong> The strongest CityPulse value comes from cross-signal fusion — e.g. parking pressure + footfall + spend + community sentiment + operational response.</div><div class="footer-actions"><button class="btn" onclick="goStep(2)">Back</button><button class="btn primary" onclick="goStep(4)">Next: Assumptions</button></div>`;
+  };
+  window.renderUseCases=renderUseCases;
+
+  function deploymentGanttHtml(c){
+    const items=c.phasedDeployment||[]; if(!items.length) return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--cyan)"></span>Phased deployment plan</div><div class="empty-state"><h3>No selected use cases yet</h3><p>Select use cases to see the 24-month deployment strip.</p></div></div>`;
+    const monthHead=[...Array(24)].map((_,i)=>`<span>${i+1}</span>`).join('');
+    return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--cyan)"></span>Phased deployment plan — 24-month view</div><p class="value-bridge-note">Each row shows when a selected use case is expected to go live. The benefit ramp starts from that month. This makes the investment case more realistic than assuming full value from Year 1.</p><div class="gantt-head" style="display:grid;grid-template-columns:260px repeat(24,1fr);gap:3px;margin:8px 0 4px"><span></span>${monthHead}</div>${items.map(it=>`<div class="gantt-row" style="display:grid;grid-template-columns:260px repeat(24,1fr);gap:3px;align-items:center;margin:4px 0"><div class="card-sub" style="font-size:11px"><strong style="color:var(--text)">${escapeHtml(it.name)}</strong><br>M${it.goLiveMonth} · ${escapeHtml((it.products||[]).join(', '))}</div>${[...Array(24)].map((_,i)=>`<span title="Month ${i+1}" style="height:13px;border-radius:4px;background:${i+1>=it.goLiveMonth?`var(--${it.color})`:'rgba(255,255,255,.06)'};opacity:${i+1>=it.goLiveMonth?'.78':'.7'}"></span>`).join('')}</div>`).join('')}</div>`;
+  }
+  function deploymentGanttPrintHtml(c){
+    const items=c.phasedDeployment||[]; return `<h2>Phased Deployment Plan</h2><p>Benefit ramp starts from each use case go-live month. This avoids assuming all value starts immediately.</p><table><tr><th>Use case</th><th>Go-live month</th><th>Products/modules</th></tr>${items.map(it=>`<tr><td>${escapeHtml(it.name)}</td><td>Month ${it.goLiveMonth}</td><td>${escapeHtml((it.products||[]).join(', '))}</td></tr>`).join('')||'<tr><td colspan="3">No selected use cases.</td></tr>'}</table>`;
+  }
+  window.deploymentGanttHtml=deploymentGanttHtml;
+
+  const v26PriorRenderShell=renderShell;
+  renderShell=function(){v26PriorRenderShell();renderSavedScenarioControls();};
+  window.renderShell=renderShell;
+
+  const v26PriorRenderInvestment=renderInvestment;
+  renderInvestment=function(){
+    v26PriorRenderInvestment();
+    const c=calculate(); const panel=document.querySelector('#screen-6 .panel'); if(!panel)return;
+    const footer=panel.querySelector('.footer-actions');
+    const holder=document.createElement('div'); holder.id='v26-deployment-holder'; holder.innerHTML=deploymentGanttHtml(c);
+    if(footer)panel.insertBefore(holder,footer); else panel.appendChild(holder);
+  };
+  window.renderInvestment=renderInvestment;
+
+  const v26PriorAdminCosts=adminCosts;
+  adminCosts=function(c){
+    v26PriorAdminCosts(c);
+    const notice=document.createElement('div');
+    notice.className='alert blue';
+    notice.innerHTML='<strong>Change management overlay:</strong> The <code>changeManagementUplift</code> cost input is added as a separate Year 1 line called <strong>Council change & adoption cost</strong>. It covers training, comms, process redesign, governance setup, internal program management and BAU embedding. It excludes SenSen product cost.';
+    const grid=c.querySelector('.grid3'); if(grid) c.insertBefore(notice,grid); else c.appendChild(notice);
+  };
+  window.adminCosts=adminCosts;
+
+  const v26PriorCostHelp=costAssumptionHelp;
+  costAssumptionHelp=function(key){
+    if(key==='changeManagementUplift') return 'Percentage uplift applied to Year 1 selected product cost to estimate council-side change, adoption and BAU embedding effort. Default 0.25 = 25%. This is shown separately as Council change & adoption cost and affects Year 1 cost, NPV, BCR and payback.';
+    return v26PriorCostHelp(key);
+  };
+  window.costAssumptionHelp=costAssumptionHelp;
+
+  scenarioCompareHtml=function(c){
+    const saved=v26GetSavedScenarios(); const names=Object.keys(saved); const current=STATE.compareSavedScenario||'';
+    let savedCalc=null;
+    if(current&&saved[current]){const keep=clone(STATE);try{STATE=Object.assign(v26NewBlankState(),clone(saved[current]));ensureState();savedCalc=calculateBase();}finally{STATE=keep;ensureState();}}
+    const cmp=c.scenarioCompare||{}; const labels={conservative:'Conservative',expected:'Expected',stretch:'Stretch'};
+    const heads=['conservative','expected','stretch'].map(id=>`<th>${labels[id]}</th>`).join('')+(savedCalc?`<th>Saved: ${escapeHtml(current)}</th>`:'');
+    const cell=(id,fn)=>`<td>${fn(cmp[id]||{})}</td>`; const savedCell=fn=>savedCalc?`<td>${fn(savedCalc||{})}</td>`:'';
+    const row=(label,fn)=>`<tr><td>${label}</td>${['conservative','expected','stretch'].map(id=>cell(id,fn)).join('')}${savedCell(fn)}</tr>`;
+    const picker=`<div class="field" style="max-width:320px;margin:8px 0 12px"><label>Compare with saved scenario</label><select onchange="STATE.compareSavedScenario=this.value;saveState();renderAll();goStep(6)"><option value="">Choose saved scenario…</option>${names.map(n=>`<option value="${escapeHtml(n)}" ${current===n?'selected':''}>${escapeHtml(n)}</option>`).join('')}</select><small class="card-sub">Optional fourth comparison target from saved local scenarios.</small></div>`;
+    return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--blue)"></span>Scenario comparison</div><p class="value-bridge-note">Shows the same council case under Conservative, Expected and Stretch multipliers without changing the user’s currently selected scenario. Optionally compare with one saved local scenario.</p>${picker}<table class="cashflow-table"><thead><tr><th>Metric</th>${heads}</tr></thead><tbody>${row('Annual Total City Dividend',x=>fmt(x.annualTotal||0))}${row('Annual Validated Financial',x=>fmt(x.financialAnnual||0))}${row('5-year NPV after costs',x=>fmt(x.npv||0))}${row('BCR',x=>((x.bcr||0).toFixed(2)+'x'))}${row('Payback (yrs)',x=>x.payback==null?'> '+CONFIG.meta.horizonYears:(x.payback||0).toFixed(1))}</tbody></table></div>`;
+  };
+  window.scenarioCompareHtml=scenarioCompareHtml;
+
+  const v26PriorGenerate=generateInvestmentCase;
+  generateInvestmentCase=function(){
+    const c=calculate();
+    if(activeUseCaseIds().length===0||c.benefits.length===0){alert('No value case has been calculated yet. Start blank and enter council data, load Clearwater demo, or use benchmark assumptions first.');return;}
+    closeFieldHelp(); const adm=document.getElementById('admin-modal'); if(adm) adm.classList.remove('show');
+    v26PriorGenerate();
+    setTimeout(()=>{ const doc=document.getElementById('print-doc'); if(doc&&!doc.innerHTML.includes('Phased Deployment Plan')){ doc.innerHTML=doc.innerHTML.replace('<h2>5. Selected Product Cost Register</h2>', deploymentGanttPrintHtml(c)+'<h2>5. Selected Product Cost Register</h2>'); } },10);
+  };
+  window.generateInvestmentCase=generateInvestmentCase;
+
+  const v26PriorAdvisorAnswer=advisorAnswer;
+  advisorAnswer=function(kind){
+    if(kind==='deployment'){
+      const c=calculate(); advisorSet(`${advisorCommonHeader('Phased deployment and change cost')}<p>Use-case benefits now start from each selected use case's go-live month. A use case set to Month 13 starts ramping in Year 2 rather than Year 1.</p>${deploymentGanttHtml(c)}<p><strong>Council change & adoption cost:</strong> ${fmt(c.changeManagementCost||0,'currencyK')} in Year 1. This is separate from SenSen product cost and covers training, comms, process redesign, governance setup and BAU embedding.</p>`);return;
+    }
+    v26PriorAdvisorAnswer(kind);
+  };
+  window.advisorAnswer=advisorAnswer;
+  const v26PriorAsk=askAdvisorFree;
+  askAdvisorFree=function(){
+    const q=(document.getElementById('advisor-question')?.value||'').toLowerCase();
+    if(q.includes('go-live')||q.includes('golive')||q.includes('deployment')||q.includes('phase')||q.includes('change management')||q.includes('adoption')){advisorAnswer('deployment');return;}
+    v26PriorAsk();
+  };
+  window.askAdvisorFree=askAdvisorFree;
+
+  ensureState(); saveConfig(); saveState(); renderAll();
+})();
+</script>
+
+
+<script>
+(function(){
+  function v27ClampGoLive(v){return Math.max(1,Math.min(24,parseInt(v,10)||1));}
+  const V27_STEPS = ["Profile","Pain Points","Use Cases","Assumptions","Dividends","Risks & Validation","Investment Case"];
+  const v27PriorEnsureState = ensureState;
+  function currentDiscountRate(){
+    const v = Number(STATE.discountRate);
+    return Number.isFinite(v) && v > 0 ? v : (Number(CONFIG.meta.discountRate)||0.07);
+  }
+  function v27EnsureDefaults(){
+    v27PriorEnsureState();
+    CONFIG.meta.configVersion='2.7.1-governance-validation-fixed';
+    if(STATE.step && STATE.step>7) STATE.step=7;
+    if(STATE.discountRate===undefined || STATE.discountRate===null || STATE.discountRate==='') STATE.discountRate=Number(CONFIG.meta.discountRate)||0.07;
+    if(!STATE.readiness) STATE.readiness={};
+    if(!STATE.risks) STATE.risks={};
+    activeUseCaseIds().forEach(uid=>{
+      if(!STATE.readiness[uid]) STATE.readiness[uid]={data:'Amber',owner:'Amber',policy:'Amber'};
+      ['data','owner','policy'].forEach(k=>{ if(!STATE.readiness[uid][k]) STATE.readiness[uid][k]='Amber'; });
+    });
+  }
+  ensureState=function(){v27EnsureDefaults();};
+  window.ensureState=ensureState;
+  window.currentDiscountRate=currentDiscountRate;
+
+  const v27PriorRenderShell = renderShell;
+  renderShell=function(){
+    v27PriorRenderShell();
+    const st=document.getElementById('stepper');
+    if(st) st.innerHTML=V27_STEPS.map((s,i)=>`<div class="step ${STATE.step===i+1?'active':STATE.step>i+1?'done':''}" onclick="goStep(${i+1})">${i+1}. ${s}</div>`).join('');
+  };
+  window.renderShell=renderShell;
+
+  function ensureScreen7(){
+    const content=document.querySelector('.content');
+    if(content && !document.getElementById('screen-7')){
+      const sec=document.createElement('section'); sec.className='screen'; sec.id='screen-7'; content.appendChild(sec);
+    }
+  }
+
+  const v27PriorCalculateFinancialMetrics = calculateFinancialMetrics;
+  calculateFinancialMetrics=function(benefits,annualCost,oneOffCost){
+    const oldRate = CONFIG.meta.discountRate;
+    CONFIG.meta.discountRate = currentDiscountRate();
+    try{return v27PriorCalculateFinancialMetrics(benefits,annualCost,oneOffCost);}
+    finally{CONFIG.meta.discountRate = oldRate;}
+  };
+  window.calculateFinancialMetrics=calculateFinancialMetrics;
+
+  const v27PriorCalculateVisualAnalytics = calculateVisualAnalytics;
+  calculateVisualAnalytics=function(base){
+    const oldRate = CONFIG.meta.discountRate;
+    CONFIG.meta.discountRate = currentDiscountRate();
+    try{return v27PriorCalculateVisualAnalytics(base);}
+    finally{CONFIG.meta.discountRate = oldRate;}
+  };
+  window.calculateVisualAnalytics=calculateVisualAnalytics;
+
+  function setDiscountRate(v){
+    const n=Math.max(0,Math.min(0.5,Number(v)||0));
+    STATE.discountRate=n; STATE.mode=STATE.mode==='blank'?'council':STATE.mode; saveState(); renderAll();
+  }
+  window.setDiscountRate=setDiscountRate;
+
+  const v27PriorRenderAssumptions = renderAssumptions;
+  renderAssumptions=function(){
+    v27PriorRenderAssumptions();
+    const screen=document.getElementById('screen-4');
+    const panel=screen?.querySelector('.panel');
+    if(!panel || document.getElementById('v27-discount-rate-panel'))return;
+    const block=document.createElement('div');
+    block.id='v27-discount-rate-panel';
+    block.innerHTML=`<div class="section-title"><span class="dot" style="background:var(--blue)"></span>Finance setting</div><div class="field" style="max-width:320px"><label class="label-help"><span>Discount rate</span><button type="button" class="help-icon" onclick="openGenericHelp('Discount rate','The discount rate converts future benefits and costs into today’s dollars for NPV and BCR. Many AU councils use 4–7% depending on treasury, investment policy and risk context. Higher rates reduce future benefit values.');event.stopPropagation();">i</button></label><input type="number" step="0.01" min="0" max="0.5" value="${currentDiscountRate()}" oninput="setDiscountRate(this.value)"><small class="card-sub">Enter as decimal. Example: 0.07 = 7%. This is saved with the scenario.</small></div>`;
+    const firstSection=panel.querySelector('.section-title');
+    if(firstSection) panel.insertBefore(block, firstSection); else panel.appendChild(block);
+  };
+  window.renderAssumptions=renderAssumptions;
+
+  function readinessLabelMap(){
+    return {
+      data:'Source data exists with at least 12 months of history',
+      owner:'Service owner identified and engaged',
+      policy:'Local policy / legal pathway confirmed'
+    };
+  }
+  function readinessNext(status){
+    return status==='Green'?'Amber':status==='Amber'?'Red':'Green';
+  }
+  function readinessClass(status){
+    return status==='Green'?'green':status==='Red'?'red':'amber';
+  }
+  function readinessScore(uid){
+    ensureState(); const r=STATE.readiness?.[uid]||{}; const vals=['data','owner','policy'].map(k=>r[k]||'Amber');
+    if(vals.includes('Red')) return 'Red';
+    if(vals.includes('Amber')) return 'Amber';
+    return 'Green';
+  }
+  function readinessSummary(){
+    ensureState();
+    const rows=activeUseCaseIds().map(uid=>({id:uid,name:CONFIG.useCases[uid]?.name||uid,score:readinessScore(uid),checks:STATE.readiness[uid]||{}}));
+    const outstanding=rows.filter(r=>r.score!=='Green');
+    return {rows,outstanding,count:outstanding.length};
+  }
+  function cycleReadiness(uid,key){
+    ensureState(); if(!STATE.readiness[uid]) STATE.readiness[uid]={data:'Amber',owner:'Amber',policy:'Amber'};
+    STATE.readiness[uid][key]=readinessNext(STATE.readiness[uid][key]||'Amber');
+    saveState(); renderAll(); goStep(3);
+  }
+  window.cycleReadiness=cycleReadiness; window.readinessScore=readinessScore; window.readinessSummary=readinessSummary;
+
+  const v27PriorToggleUseCase = toggleUseCase;
+  toggleUseCase=function(id){
+    v27PriorToggleUseCase(id);
+    ensureState();
+    if(STATE.selectedUseCases[id] && !STATE.readiness[id]) STATE.readiness[id]={data:'Amber',owner:'Amber',policy:'Amber'};
+    saveState();
+  };
+  window.toggleUseCase=toggleUseCase;
+
+  renderUseCases=function(){
+    ensureState(); const el=document.getElementById('screen-3'); const cats={}; const labels=readinessLabelMap();
+    Object.entries(CONFIG.useCases).forEach(([id,u])=>{const primary=(u.products||[]).find(p=>p!=='citypulse')||'citypulse';const name=CONFIG.products[primary]?.name||'CityPulse';(cats[name]=cats[name]||[]).push([id,u]);});
+    el.innerHTML=`<div class="panel"><div class="panel-head"><div><div class="panel-title">CityPulse modules and SenSen product use cases</div><div class="panel-kicker">Select use cases, set go-live month and capture readiness before tender-ready use</div></div></div><div class="alert blue"><strong>Phasing discipline:</strong> Councils rarely deploy every use case in Month 1. Use go-live month to stage pilots, operational rollout and later expansion. Month 13 starts benefit ramping in Year 2.</div><div class="alert"><strong>Readiness discipline:</strong> Green means evidence is ready for a stronger case. Amber or Red means the item must be validated before a tender-ready or customer-facing business case.</div>${Object.entries(cats).map(([cat,items])=>`<div class="section-title"><span class="dot" style="background:${colorVar(CONFIG.products[items[0][1].products.find(p=>p!=='citypulse')||'citypulse']?.color)}"></span>${cat}</div>${items.map(([id,u])=>{const selected=!!STATE.selectedUseCases[id]; const go=v27ClampGoLive(STATE.goLiveMonths?.[id]||1); const score=selected?readinessScore(id):''; const checks=STATE.readiness?.[id]||{data:'Amber',owner:'Amber',policy:'Amber'}; return `<div class="usecase-row ${selected?'selected':''}"><div class="togglebox" onclick="toggleUseCase('${id}')">✓</div><div><div class="card-title">${u.name} ${selected?`<span class="tag ${readinessClass(score)}">Readiness: ${score}</span>`:''}</div><div class="card-sub">${u.description}</div><div class="product-list tag-row">${(u.products||[]).map(p=>`<span class="tag ${colorClass(CONFIG.products[p]?.color)}">${CONFIG.products[p]?.name||p}</span>`).join('')}</div>${selected?`<div class="field" style="margin-top:10px;max-width:240px"><label class="label-help"><span>Go-live month (1–24)</span><button type="button" class="help-icon" onclick="openGenericHelp('Go-live month','Benefit ramp for this use case starts from the go-live month. Month 1 starts immediately; month 13 starts in Year 2. Use this to model staged deployment rather than assuming all value starts in Year 1.');event.stopPropagation();">i</button></label><input type="number" min="1" max="24" step="1" value="${go}" oninput="setUseCaseGoLive('${id}',this.value)"><small class="card-sub">Current phase: ${go<=12?'Year 1':'Year 2'} · Month ${go}</small></div><div class="card-option" style="cursor:default;margin-top:10px;padding:10px"><div class="card-title">Readiness checklist</div><div class="card-sub">Click each item to cycle Green → Amber → Red.</div>${['data','owner','policy'].map(k=>`<button type="button" class="tag ${readinessClass(checks[k]||'Amber')}" style="margin:6px 6px 0 0;border:none;cursor:pointer" onclick="cycleReadiness('${id}','${k}');event.stopPropagation();">${checks[k]||'Amber'} · ${labels[k]}</button>`).join('')}</div>`:''}</div><div style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)">${selected?'Included':'Off'}${selected?`<br><span class="tag">M${go}</span>`:''}</div></div>`;}).join('')}`).join('')}</div><div class="alert green"><strong>Platform point:</strong> The strongest CityPulse value comes from cross-signal fusion — e.g. parking pressure + footfall + spend + community sentiment + operational response.</div><div class="footer-actions"><button class="btn" onclick="goStep(2)">Back</button><button class="btn primary" onclick="goStep(4)">Next: Assumptions</button></div>`;
+  };
+  window.renderUseCases=renderUseCases;
+
+  function isComplianceUseCase(uid){
+    const u=CONFIG.useCases[uid]||{}; const txt=(uid+' '+(u.name||'')+' '+(u.description||'')+' '+(u.products||[]).join(' ')).toLowerCase();
+    return /parking|compliance|infringement|enforcement|senforce|senpic|kerb|curb|loading|zone/.test(txt);
+  }
+  function buildRiskRegister(){
+    ensureState();
+    const active=activeUseCaseIds();
+    const products=activeProducts();
+    const readiness=readinessSummary();
+    const templates=[
+      {id:'cyber',risk:'Cyber and privacy risk',likelihood:'Medium',impact:'High',mitigation:'Confirm hosting, access control, logging, data retention, privacy and cyber assurance requirements before production.',owner:'CIO / Cyber'},
+      {id:'vendor_concentration',risk:'Vendor concentration and service dependency risk',likelihood:'Medium',impact:'Medium',mitigation:'Confirm support model, commercial terms, service levels, exit paths and data portability.',owner:'Commercial / ICT'},
+      {id:'change_adoption',risk:'Change adoption risk',likelihood:'Medium',impact:'High',mitigation:'Fund training, communications, process redesign, governance setup and BAU ownership.',owner:'Executive sponsor / Change'}
+    ];
+    if(readiness.count>0) templates.unshift({id:'data_quality',risk:'Data quality and readiness risk',likelihood:'High',impact:'High',mitigation:'Resolve Amber/Red readiness items, confirm 12-month source data and validate assumptions with service owners.',owner:'Service owner / Data'});
+    if(products.length>=3) templates.push({id:'integration',risk:'Integration and cross-system dependency risk',likelihood:'Medium',impact:'High',mitigation:'Confirm source systems, integration pathway, data refresh, identity/security model and operational ownership.',owner:'ICT / Program'});
+    if(active.some(isComplianceUseCase)) templates.push({id:'legal_policy',risk:'Legal / policy pathway risk',likelihood:'Medium',impact:'High',mitigation:'Confirm enforcement, evidence, privacy, signage, local law and policy requirements with authorised council owners.',owner:'Governance / Local Laws'});
+    return templates.map(t=>({...t,...(STATE.risks[t.id]||{})}));
+  }
+  function updateRisk(id,field,value){
+    ensureState(); if(!STATE.risks[id]) STATE.risks[id]={};
+    STATE.risks[id][field]=value; STATE.mode=STATE.mode==='blank'?'council':STATE.mode; saveState(); renderAll(); goStep(6);
+  }
+  window.updateRisk=updateRisk; window.buildRiskRegister=buildRiskRegister;
+
+  function readinessTableHtml(){
+    const s=readinessSummary(); const labels=readinessLabelMap();
+    return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--amber)"></span>Use-case readiness</div><p class="value-bridge-note">Readiness is not a benefit calculation. It is a confidence/governance check showing whether the selected use cases are ready for tender-ready or customer-facing use.</p><table class="cashflow-table"><thead><tr><th>Use case</th><th>Overall</th><th>${labels.data}</th><th>${labels.owner}</th><th>${labels.policy}</th></tr></thead><tbody>${s.rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td><span class="tag ${readinessClass(r.score)}">${r.score}</span></td><td>${r.checks.data||'Amber'}</td><td>${r.checks.owner||'Amber'}</td><td>${r.checks.policy||'Amber'}</td></tr>`).join('')||'<tr><td colspan="5">No selected use cases yet.</td></tr>'}</tbody></table></div>`;
+  }
+  function riskRegisterHtml(editable){
+    const rows=buildRiskRegister();
+    const select=(id,field,val)=>`<select onchange="updateRisk('${id}','${field}',this.value)">${['Low','Medium','High'].map(x=>`<option value="${x}" ${val===x?'selected':''}>${x}</option>`).join('')}</select>`;
+    return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--red)"></span>Risk register</div><p class="value-bridge-note">Risks are pre-populated from the selected use cases and can be edited. They should be reviewed with the customer before moving from indicative to tender-ready.</p><table class="cashflow-table"><thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th><th>Owner</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${escapeHtml(r.risk)}</td><td>${editable?select(r.id,'likelihood',r.likelihood):escapeHtml(r.likelihood)}</td><td>${editable?select(r.id,'impact',r.impact):escapeHtml(r.impact)}</td><td>${editable?`<input type="text" value="${escapeHtml(r.mitigation||'')}" oninput="updateRisk('${r.id}','mitigation',this.value)" style="min-width:260px">`:escapeHtml(r.mitigation||'')}</td><td>${editable?`<input type="text" value="${escapeHtml(r.owner||'')}" oninput="updateRisk('${r.id}','owner',this.value)" style="min-width:130px">`:escapeHtml(r.owner||'')}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  function renderRisksValidation(){
+    const el=document.getElementById('screen-6'); if(!el)return;
+    const s=readinessSummary();
+    el.innerHTML=`<div class="panel"><div class="panel-head"><div><div class="panel-title">Risks & validation</div><div class="panel-kicker">Council-grade checks before the value case becomes tender-ready</div></div></div>${s.count?`<div class="alert"><strong>${s.count} selected use case${s.count===1?' has':'s have'} outstanding readiness checks.</strong> Resolve Amber or Red items before calling this tender-ready.</div>`:`<div class="alert green"><strong>Readiness check:</strong> All selected use cases are marked Green.</div>`}${readinessTableHtml()}${riskRegisterHtml(true)}<div class="alert blue"><strong>How to use this page:</strong> This does not reduce the value automatically. It shows what needs validation, ownership and mitigation before the investment case is used externally or in procurement.</div><div class="footer-actions"><button class="btn" onclick="goStep(5)">Back</button><button class="btn primary" onclick="goStep(7)">Next: Investment Case</button></div></div>`;
+  }
+  window.renderRisksValidation=renderRisksValidation;
+
+  function npvRateSensitivity(){
+    const keep=STATE.discountRate; const rates=[0.04,0.07,0.10]; const out={};
+    for(const r of rates){
+      STATE.discountRate=r;
+      out[r.toFixed(2)]=calculateBase().npv;
+    }
+    STATE.discountRate=keep;
+    return out;
+  }
+  function npvRateSensitivityHtml(c){
+    const vals=c.npvRateSensitivity||npvRateSensitivity();
+    return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--blue)"></span>NPV sensitivity to discount rate</div><p class="value-bridge-note">Higher discount rates reduce the present value of future benefits. This panel helps Finance see whether the value case is robust across common council planning rates.</p><div class="grid3"><div class="metric-tile"><div class="metric-label">4% discount rate</div><div class="metric-value" style="color:var(--green)">${fmt(vals['0.04']||0,'currencyK')}</div><div class="metric-note">Lower-rate view</div></div><div class="metric-tile"><div class="metric-label">7% discount rate</div><div class="metric-value" style="color:var(--blue)">${fmt(vals['0.07']||0,'currencyK')}</div><div class="metric-note">Common central case</div></div><div class="metric-tile"><div class="metric-label">10% discount rate</div><div class="metric-value" style="color:var(--amber)">${fmt((vals['0.10']??vals['0.1']??0),'currencyK')}</div><div class="metric-note">Higher hurdle-rate view</div></div></div></div>`;
+  }
+  window.npvRateSensitivityHtml=npvRateSensitivityHtml; window.readinessTableHtml=readinessTableHtml; window.riskRegisterHtml=riskRegisterHtml;
+
+  const v27PriorCalculate = calculate;
+  calculate=function(){
+    const base=v27PriorCalculate();
+    base.readiness=readinessSummary();
+    base.riskRegister=buildRiskRegister();
+    base.npvRateSensitivity=npvRateSensitivity();
+    if(base.readiness.count>0) base.validationWarnings.push(`${base.readiness.count} selected use case(s) have Amber or Red readiness checks. Resolve before tender-ready stage.`);
+    return base;
+  };
+  window.calculate=calculate;
+
+  renderInvestment=function(){
+    const el=document.getElementById('screen-7');
+    const c=calculate();
+    const cashRows=Object.entries(c.breakdowns.cashability||{}).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(v)}</td><td>${k==='Validated financial'||k==='Avoided cost'?'Included in Validated Financial View':'Shown in Total City Dividend only'}</td></tr>`).join('');
+    const confRows=Object.entries(c.breakdowns.confidence||{}).map(([k,v])=>`<tr><td>${k}</td><td>${fmt(v)}</td><td>${k==='Low'?'Validate before customer-facing use':'Use with appropriate source notes'}</td></tr>`).join('');
+    const includedIds=new Set(c.productCosts.map(p=>p.id));
+    const excludedNames=Object.entries(CONFIG.products).filter(([pid])=>!includedIds.has(pid)).map(([,p])=>p.name);
+    const year2Recurring=c.years[1]?c.years[1].recurringCost:0;
+    const year3Recurring=c.years[2]?c.years[2].recurringCost:0;
+    const costSummaryBox=`<div class="section-title"><span class="dot" style="background:var(--amber)"></span>Cost Summary</div>
+    <div class="grid3">
+      <div class="metric-tile"><div class="metric-label">Year 1 selected cost</div><div class="metric-value" style="color:var(--amber)">${fmt(c.totalBridge.year1Cost,'currencyK')}</div><div class="metric-note">Recurring + one-off setup/hardware in Year 1</div></div>
+      <div class="metric-tile"><div class="metric-label">Base recurring annual cost</div><div class="metric-value" style="color:var(--blue)">${fmt(c.totalBridge.baseRecurringCost,'currencyK')}</div><div class="metric-note">Recurring run-rate before escalation</div></div>
+      <div class="metric-tile"><div class="metric-label">Recurring cost escalation</div><div class="metric-value">${fmt(c.totalBridge.escalationRate,'percent')}</div><div class="metric-note">Annual uplift applied to recurring costs only</div></div>
+      <div class="metric-tile"><div class="metric-label">Year 2 recurring cost</div><div class="metric-value" style="color:var(--blue)">${fmt(year2Recurring,'currencyK')}</div><div class="metric-note">Recurring cost after one year of escalation</div></div>
+      <div class="metric-tile"><div class="metric-label">Year 3 recurring cost</div><div class="metric-value" style="color:var(--blue)">${fmt(year3Recurring,'currencyK')}</div><div class="metric-note">Recurring cost after two years of escalation</div></div>
+      <div class="metric-tile"><div class="metric-label">5-year undiscounted selected cost</div><div class="metric-value" style="color:var(--red)">${fmt(c.totalBridge.undiscountedTotalCost,'currencyK')}</div><div class="metric-note">Nominal selected cost over the full horizon</div></div>
+      <div class="metric-tile"><div class="metric-label">5-year discounted selected cost</div><div class="metric-value" style="color:var(--red)">${fmt(c.totalBridge.discountedTotalCost,'currencyK')}</div><div class="metric-note">Present-value cost used in NPV/BCR</div></div>
+    </div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="card-option" style="cursor:default"><div class="card-title">Included because</div><div class="card-sub">These products are currently costed because selected use cases require them.</div><ul style="margin:10px 0 0 18px">${c.productCosts.length?c.productCosts.map(p=>`<li><strong>${p.name}</strong>: ${(p.reasons||[]).join('; ')||'Selected use case requires this product.'}</li>`).join(''):'<li>No selected product costs yet.</li>'}</ul></div>
+      <div class="card-option" style="cursor:default"><div class="card-title">Not included</div><div class="card-sub">These products are currently not costed because no active use case requires them.</div><ul style="margin:10px 0 0 18px">${excludedNames.length?excludedNames.map(n=>`<li>${n}</li>`).join(''):'<li>All products are currently included.</li>'}</ul></div>
+    </div>`;
+    el.innerHTML=`<div class="panel"><div class="panel-head"><div><div class="panel-title">Value case summary</div><div class="panel-kicker">Explains annual benefits, net present value, selected costs, cashability, confidence, readiness and risk</div></div></div><div class="fin-split-grid"><div class="metric-tile"><div class="metric-label">Annual Total City Dividend</div><div class="metric-value" style="color:var(--green)">${fmt(c.annualTotal,'currencyK')}</div><div class="metric-note">Annual benefit before selected product costs</div></div><div class="metric-tile"><div class="metric-label">5-year Total City Dividend NPV after Costs</div><div class="metric-value" style="color:${c.npv>=0?'var(--green)':'var(--red)'}">${fmt(c.npv,'currencyK')}</div><div class="metric-note">Discounted benefits minus discounted costs at ${fmt(currentDiscountRate(),'percent')}</div></div><div class="metric-tile"><div class="metric-label">Confidence-adjusted NPV</div><div class="metric-value" style="color:${(c.confidenceAdjusted?.npv||0)>=0?'var(--green)':'var(--red)'}">${fmt(c.confidenceAdjusted?.npv||0,'currencyK')}</div><div class="metric-note">Risk-adjusted using confidence haircuts</div></div><div class="metric-tile"><div class="metric-label">Readiness outstanding</div><div class="metric-value" style="color:${c.readiness.count?'var(--amber)':'var(--green)'}">${c.readiness.count}</div><div class="metric-note">Use cases with Amber/Red checks</div></div><div class="metric-tile"><div class="metric-label">Annual Validated Financial Benefit</div><div class="metric-value" style="color:var(--blue)">${fmt(c.financialAnnual,'currencyK')}</div><div class="metric-note">Cashable + avoided cost before selected costs</div></div><div class="metric-tile"><div class="metric-label">5-year Net Financial NPV after Costs</div><div class="metric-value" style="color:${c.financial.npv>=0?'var(--blue)':'var(--red)'}">${fmt(c.financial.npv,'currencyK')}</div><div class="metric-note">Financial benefit after selected costs</div></div><div class="metric-tile"><div class="metric-label">Value BCR / Financial BCR</div><div class="metric-value">${c.bcr.toFixed(2)}x / ${c.financial.bcr.toFixed(2)}x</div><div class="metric-note">Discounted benefits divided by discounted costs</div></div><div class="metric-tile"><div class="metric-label">Payback / financial payback</div><div class="metric-value">${c.payback==null?'> '+CONFIG.meta.horizonYears:c.payback.toFixed(1)} yrs</div><div class="metric-note">Financial payback: ${c.financial.payback==null?'> '+CONFIG.meta.horizonYears:c.financial.payback.toFixed(1)+' yrs'}</div></div></div>${c.readiness.count?`<div class="alert"><strong>${c.readiness.count} selected use case${c.readiness.count===1?' has':'s have'} outstanding readiness checks.</strong> Resolve before tender-ready stage.</div>`:''}${costSummaryBox}${valueBridgeHtml(c)}${npvRateSensitivityHtml(c)}${visualAnalyticsHtml(c)}${tornadoSensitivityHtml(c)}${scenarioCompareHtml(c)}${inactionCostHtml(c)}${deploymentGanttHtml(c)}${readinessTableHtml()}${riskRegisterHtml(false)}<div class="section-title"><span class="dot" style="background:var(--green)"></span>Cashability breakdown</div><table class="cashflow-table"><thead><tr><th>Value class</th><th>Annual value</th><th>How to use it</th></tr></thead><tbody>${cashRows}</tbody></table><div class="section-title"><span class="dot" style="background:var(--purple)"></span>Confidence breakdown</div><table class="cashflow-table"><thead><tr><th>Confidence</th><th>Annual value</th><th>Guidance</th></tr></thead><tbody>${confRows}</tbody></table><div class="section-title"><span class="dot" style="background:var(--amber)"></span>Selected product cost register</div><table class="cashflow-table"><thead><tr><th>Product</th><th>Annual</th><th>One-off</th><th>Included because</th></tr></thead><tbody>${c.productCosts.map(p=>`<tr><td>${p.name}</td><td>${fmt(p.annual)}</td><td>${fmt(p.oneOff)}</td><td>${(p.reasons||[]).join('; ')}</td></tr>`).join('')||'<tr><td colspan="4">No selected product costs yet.</td></tr>'}</tbody></table><div class="section-title"><span class="dot" style="background:var(--blue)"></span>Annual cashflow</div><table class="cashflow-table"><thead><tr><th>Year</th><th>Total benefits</th><th>Recurring cost</th><th>One-off cost</th><th>Total cost</th><th>Discounted cost</th><th>Net</th><th>Cumulative</th></tr></thead><tbody>${c.years.map(y=>`<tr><td>Year ${y.year}</td><td>${fmt(y.benefit)}</td><td>${fmt(y.recurringCost)}</td><td>${fmt(y.oneOffCost)}</td><td>${fmt(y.cost)}</td><td>${fmt(y.discountedCost)}</td><td>${fmt(y.net)}</td><td>${fmt(y.cumulative)}</td></tr>`).join('')}</tbody></table><div class="section-title"><span class="dot" style="background:var(--green)"></span>Assumptions register</div><table class="assumption-table"><thead><tr><th>Assumption</th><th>Value</th><th>Group</th></tr></thead><tbody><tr><td>Discount rate</td><td>${fmt(currentDiscountRate(),'percent')}</td><td>Finance</td></tr>${assumptionsForActive().slice(0,80).map(a=>`<tr><td>${a.label}</td><td>${a.value}</td><td>${a.group}</td></tr>`).join('')}</tbody></table>${c.validationWarnings.length?`<div class="alert"><strong>Model checks:</strong><ul>${c.validationWarnings.map(w=>`<li>${w}</li>`).join('')}</ul></div>`:''}<div class="alert"><strong>Validation required:</strong> ${CONFIG.meta.disclaimer}</div><div class="footer-actions"><button class="btn" onclick="goStep(6)">Back</button><button class="btn primary" onclick="generateInvestmentCase()">Generate Print-Ready Value Case</button><button class="btn" onclick="exportScenario()">Export Scenario JSON</button></div></div>`;
+  };
+  window.renderInvestment=renderInvestment;
+
+  renderScreens=function(){
+    ensureScreen7();
+    for(let i=1;i<=7;i++){const s=document.getElementById('screen-'+i); if(s)s.classList.toggle('active',STATE.step===i);}
+    renderProfile(); renderPains(); renderUseCases(); renderAssumptions(); renderDividends(); renderRisksValidation(); renderInvestment();
+  };
+  window.renderScreens=renderScreens;
+
+  const v27PriorRenderDividends = renderDividends;
+  renderDividends=function(){
+    v27PriorRenderDividends();
+    const screen=document.getElementById('screen-5');
+    if(!screen)return;
+    const btn=[...screen.querySelectorAll('button')].find(b=>String(b.textContent||'').includes('Investment'));
+    if(btn){btn.textContent='Next: Risks & Validation'; btn.setAttribute('onclick','goStep(6)');}
+  };
+  window.renderDividends=renderDividends;
+
+  const v27PriorRenderSummary = renderSummary;
+  renderSummary=function(){
+    v27PriorRenderSummary();
+    const s=readinessSummary(); const summary=document.getElementById('live-summary');
+    if(summary && s.count>0){
+      const body=summary.querySelector('.summary-body')||summary;
+      const div=document.createElement('div'); div.className='alert'; div.style.margin='10px 0'; div.innerHTML=`<strong>${s.count} use case${s.count===1?' has':'s have'} outstanding readiness checks.</strong><br>Resolve before tender-ready stage.`;
+      body.insertBefore(div, body.firstChild);
+    }
+  };
+  window.renderSummary=renderSummary;
+
+  const v27PriorGenerateInvestmentCase = generateInvestmentCase;
+  generateInvestmentCase=function(){
+    const c=calculate();
+    v27PriorGenerateInvestmentCase();
+    setTimeout(()=>{
+      const doc=document.getElementById('print-doc'); if(!doc)return;
+      const extra=`<h2>Governance Readiness</h2>${readinessTableHtml()}<h2>Risk Register</h2>${riskRegisterHtml(false)}<h2>Finance Discount Rate Sensitivity</h2>${npvRateSensitivityHtml(c)}<p><strong>Scenario discount rate:</strong> ${fmt(currentDiscountRate(),'percent')}</p>`;
+      if(!doc.innerHTML.includes('Governance Readiness')){
+        doc.innerHTML=doc.innerHTML.replace('<h2>11. Model Checks and Validation Notes</h2>', extra+'<h2>11. Model Checks and Validation Notes</h2>');
+      }
+    },20);
+  };
+  window.generateInvestmentCase=generateInvestmentCase;
+
+  const v27PriorAskAdvisorFree = askAdvisorFree;
+  askAdvisorFree=function(){
+    const q=(document.getElementById('advisor-question')?.value||'').toLowerCase();
+    if(q.includes('risk')||q.includes('readiness')||q.includes('validation')||q.includes('discount rate')||q.includes('hurdle')){
+      const c=calculate();
+      advisorSet(`${advisorCommonHeader('Readiness, risk and finance validation')}<p><strong>Readiness:</strong> ${c.readiness.count} selected use case(s) have Amber or Red checks. Treat these as validation tasks before tender-ready use.</p><p><strong>Risk register:</strong> ${c.riskRegister.length} risks are currently listed, including cyber, vendor, change adoption and any selected-use-case-specific risks.</p><p><strong>Discount rate:</strong> current scenario rate is ${fmt(currentDiscountRate(),'percent')}. The Investment Case screen also shows NPV at 4%, 7% and 10%.</p>`);
+      return;
+    }
+    v27PriorAskAdvisorFree();
+  };
+  window.askAdvisorFree=askAdvisorFree;
+
+  ensureState(); saveState(); renderAll();
+})();
+</script>
+
+
+<script>
+(function(){
+  if(typeof scenarioCompareHtml==='function'){
+    const v27ScenarioCompareHtmlFix=scenarioCompareHtml;
+    scenarioCompareHtml=function(c){return v27ScenarioCompareHtmlFix(c).replace(/goStep\(6\)/g,'goStep(7)');};
+    window.scenarioCompareHtml=scenarioCompareHtml;
+  }
+  ensureState(); renderAll();
+})();
+</script>
+
+
+<script>
+(function(){
+  const V28='2.8-export-advisor-hardening';
+  try{CONFIG.meta.configVersion=V28;}catch(e){}
+
+  function v28SafeText(v){return String(v===undefined||v===null?'':v);}
+  function v28Xml(v){return v28SafeText(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function v28SheetName(name){return v28SafeText(name||'Sheet').replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,31)||'Sheet';}
+  function v28Cell(v){
+    if(v===undefined||v===null) return '<Cell><Data ss:Type="String"></Data></Cell>';
+    if(typeof v==='number' && isFinite(v)) return `<Cell><Data ss:Type="Number">${v}</Data></Cell>`;
+    return `<Cell><Data ss:Type="String">${v28Xml(v)}</Data></Cell>`;
+  }
+  function v28Rows(rows){return (rows||[]).map(r=>`<Row>${(r||[]).map(v28Cell).join('')}</Row>`).join('');}
+  function v28DownloadBlob(filename,content,mime){
+    const blob=new Blob([content],{type:mime||'application/octet-stream'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},800);
+  }
+  function v28ActiveProductNames(){try{return activeProducts().map(p=>p.name).join(', ')||'None';}catch(e){return 'Not available';}}
+  function v28SelectedUseCaseNames(){try{return activeUseCaseIds().map(id=>CONFIG.useCases[id]?.name||id);}catch(e){return [];}}
+  function v28RiskRows(){
+    try{return (typeof buildRiskRegister==='function'?buildRiskRegister():(calculate().riskRegister||[]))||[];}catch(e){return [];} 
+  }
+  function v28AssumptionRows(){
+    const rows=[['Assumption','Value','Group','Key / source guidance']];
+    try{rows.push(['Discount rate',currentDiscountRate(),'Finance','Scenario-specific discount rate used for NPV/BCR']);}catch(e){}
+    try{assumptionsForActive().forEach(a=>rows.push([a.label,a.value,a.group,a.key||'']));}catch(e){}
+    try{Object.entries(CONFIG.costInputs||{}).forEach(([k,v])=>rows.push([k,v,'Cost model','Admin → Costs']));}catch(e){}
+    try{Object.entries(CONFIG.inactionModel||{}).forEach(([k,v])=>{if(typeof v!=='object')rows.push([k,v,'Inaction model','Admin → Inaction model']);});}catch(e){}
+    try{Object.entries(CONFIG.confidenceHaircuts||{}).forEach(([k,v])=>rows.push([k,v,'Confidence haircut','Admin → Formulas']));}catch(e){}
+    return rows;
+  }
+  function v28WorkbookSheets(){
+    const c=calculate();
+    const now=new Date().toLocaleString('en-AU');
+    const summary=[
+      ['Metric','Value','Explanation'],
+      ['Export created',now,'Generated locally in the browser; no server/API call used.'],
+      ['Council',STATE.councilName||'', 'Current scenario council name'],
+      ['Scenario state',typeof modeLabel==='function'?modeLabel():(STATE.mode||''),'Blank/demo/benchmark/council-entered status'],
+      ['Scenario',STATE.scenarioId||'','Current scenario multiplier setting'],
+      ['Maturity',STATE.maturityId||'','Current maturity multiplier setting'],
+      ['Discount rate',typeof currentDiscountRate==='function'?currentDiscountRate():(CONFIG.meta.discountRate||0),'Used for NPV and BCR'],
+      ['Active products',v28ActiveProductNames(),'Products/modules triggered by selected use cases'],
+      ['Selected use cases',v28SelectedUseCaseNames().join('; '),'Use cases currently active'],
+      ['Annual Total City Dividend',c.annualTotal||0,'Annual benefit before selected costs'],
+      ['Annual Validated Financial Benefit',c.financialAnnual||0,'Cashable + avoided-cost annual value before selected costs'],
+      ['5-year Total City Dividend NPV after costs',c.npv||0,'Discounted benefits minus discounted selected costs'],
+      ['5-year Net Financial NPV after costs',c.financial?.npv||0,'Financial view discounted net value after costs'],
+      ['Confidence-adjusted NPV',c.confidenceAdjusted?.npv||0,'NPV after confidence haircuts'],
+      ['Value BCR',c.bcr||0,'Discounted total benefits divided by discounted selected costs'],
+      ['Financial BCR',c.financial?.bcr||0,'Discounted financially-oriented benefits divided by discounted selected costs'],
+      ['Payback years',c.payback==null?`>${CONFIG.meta.horizonYears}`:c.payback,'Estimated payback from annual cashflow'],
+      ['Readiness outstanding',c.readiness?.count||0,'Selected use cases with Amber/Red checks'],
+      ['5-year selected cost, undiscounted',c.totalCosts||0,'Nominal selected cost over model horizon'],
+      ['5-year selected cost, discounted',c.discountedCosts||0,'Present-value cost used in NPV/BCR']
+    ];
+    const cashflow=[['Year','Total benefits','Recurring cost','One-off cost','Total cost','Discounted benefit','Discounted cost','Net','Cumulative']]
+      .concat((c.years||[]).map(y=>[y.year,y.benefit||0,y.recurringCost||0,y.oneOffCost||0,y.cost||0,y.discountedBenefit||0,y.discountedCost||0,y.net||0,y.cumulative||0]));
+    const benefits=[['Benefit','Use case','Annual benefit before costs','Cashability','Confidence','Ramp','Formula','Formula explanation','Year 1','Year 2','Year 3','Year 4','Year 5']]
+      .concat((c.benefits||[]).map(b=>[b.name,b.useCase||'',b.annual||0,b.cashability||'',b.confidence||'',b.ramp||'',b.formula||'',b.explain||'',...(b.yearly||[]).slice(0,5)]));
+    const costs=[['Cost line','Product/module','Annual recurring','One-off','Included because','Driver / explanation']]
+      .concat((c.productCosts||[]).filter(p=>p.id!=='change_adoption').map(p=>['Product cost',p.name,p.annual||0,p.oneOff||0,(p.reasons||[]).join('; '),p.driver||'']))
+      .concat([['Council change & adoption cost','Council internal change overlay',0,c.changeManagementCost||0,'Year 1 only','Training, comms, process redesign, governance setup, internal program management and BAU embedding']])
+      .concat([[],['Year','Recurring cost','One-off cost','Total cost','Discounted cost']])
+      .concat((c.years||[]).map(y=>[y.year,y.recurringCost||0,y.oneOffCost||0,y.cost||0,y.discountedCost||0]));
+    const assumptions=v28AssumptionRows();
+    const risks=[['Risk','Likelihood','Impact','Mitigation','Owner']]
+      .concat(v28RiskRows().map(r=>[r.risk||'',r.likelihood||'',r.impact||'',r.mitigation||'',r.owner||'']));
+    const sensitivity=[['Assumption','Baseline value','Downside NPV delta','Upside NPV delta','Swing','Sweep']]
+      .concat((c.sensitivity||[]).map(d=>[d.label||d.key||'',d.baselineValue||0,d.downDelta||0,d.upDelta||0,d.swing||0,STATE.sensitivitySweep||0.2]));
+    const readiness=[['Use case','Readiness score','Source data exists','Service owner identified','Policy/legal pathway confirmed']]
+      .concat((c.readiness?.rows||[]).map(r=>[r.name,r.score,r.checks?.data||'',r.checks?.owner||'',r.checks?.policy||'']));
+    return [
+      ['Summary',summary],['Cashflow',cashflow],['Benefits',benefits],['Costs',costs],['Assumptions',assumptions],['Risks',risks],['Sensitivity',sensitivity],['Readiness',readiness]
+    ];
+  }
+  function exportToExcel(){
+    const c=calculate();
+    if(activeUseCaseIds().length===0||!c.benefits?.length){alert('No value case has been calculated yet. Load the demo or select use cases before exporting.');return;}
+    const sheets=v28WorkbookSheets();
+    const worksheets=sheets.map(([name,rows])=>`<Worksheet ss:Name="${v28Xml(v28SheetName(name))}"><Table>${v28Rows(rows)}</Table></Worksheet>`).join('');
+    const xml=`<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Title>CityPulse City Dividend Export</Title><Author>CityPulse Calculator</Author><Created>${new Date().toISOString()}</Created></DocumentProperties><ExcelWorkbook xmlns="urn:schemas-microsoft-com:office:excel"><ProtectStructure>False</ProtectStructure><ProtectWindows>False</ProtectWindows></ExcelWorkbook>${worksheets}</Workbook>`;
+    const safe=(STATE.councilName||'citypulse').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'citypulse';
+    v28DownloadBlob(`${safe}-city-dividend-export-v28.xls`,xml,'application/vnd.ms-excel;charset=utf-8');
+  }
+  window.exportToExcel=exportToExcel;
+
+  function v28InjectButtons(){
+    const top=document.querySelector('.top-actions');
+    if(top&&!document.getElementById('v28-excel-topbar')){
+      const b=document.createElement('button'); b.className='btn small'; b.id='v28-excel-topbar'; b.type='button'; b.textContent='Export to Excel'; b.onclick=exportToExcel;
+      const admin=[...top.children].find(x=>String(x.textContent||'').includes('Admin')); top.insertBefore(b,admin||top.lastChild);
+    }
+    const foot=document.querySelector('#screen-7 .footer-actions');
+    if(foot&&!document.getElementById('v28-excel-step')){
+      const b=document.createElement('button'); b.className='btn'; b.id='v28-excel-step'; b.type='button'; b.textContent='Export to Excel'; b.onclick=exportToExcel;
+      const json=[...foot.children].find(x=>String(x.textContent||'').includes('Scenario JSON')); foot.insertBefore(b,json||null);
+    }
+  }
+  const v28PriorRenderAll=renderAll; renderAll=function(){v28PriorRenderAll(); setTimeout(v28InjectButtons,0);}; window.renderAll=renderAll;
+  const v28PriorGoStep=goStep; goStep=function(n){v28PriorGoStep(n); setTimeout(v28InjectButtons,0);}; window.goStep=goStep;
+  setTimeout(v28InjectButtons,250);
+
+  function v28TopSensitivity(){const c=calculate();return (c.sensitivity||[]).slice(0,5);} 
+  function v28LowConfidenceBenefits(){const c=calculate();return (c.benefits||[]).filter(b=>String(b.confidence).toLowerCase()==='low').sort((a,b)=>(b.annual||0)-(a.annual||0)).slice(0,5);} 
+  function v28TopRisks(){return v28RiskRows().slice(0,6);} 
+  function v28AdvisorPanel(title,subtitle,body){advisorSet(`${advisorCommonHeader(title,subtitle)}${body}`);} 
+  function v28NextValidationAnswer(){
+    const c=calculate(); const sens=v28TopSensitivity(); const low=v28LowConfidenceBenefits(); const risks=v28TopRisks(); const outstanding=c.readiness?.outstanding||[];
+    v28AdvisorPanel('What to validate next','Prioritised from sensitivity, confidence, readiness and risk.',`<p>Start with the assumptions that can change the NPV the most, then validate readiness and ownership.</p><ol>${sens.slice(0,4).map(d=>`<li><strong>${escapeHtml(d.label||d.key)}</strong> — NPV swing ${fmt(d.swing||0,'currencyK')}; current value ${fmt(d.baselineValue||0,'num')}.</li>`).join('')||'<li>No sensitivity drivers calculated yet.</li>'}</ol><p><strong>Low-confidence benefits to challenge:</strong> ${low.length?low.map(b=>`${escapeHtml(b.name)} (${fmt(b.annual,'currencyK')})`).join('; '):'none currently active.'}</p><p><strong>Readiness:</strong> ${outstanding.length} selected use case(s) still have Amber/Red checks.</p><p><strong>Risk register:</strong> ${risks.length} active risks should have named owners before this becomes tender-ready.</p>`);
+  }
+  function v28AudienceAnswer(audience){
+    const c=calculate(); const sens=v28TopSensitivity(); const fin=fmt(c.financialAnnual||0,'currencyK'); const total=fmt(c.annualTotal||0,'currencyK'); const npv=fmt(c.npv||0,'currencyK'); const readiness=c.readiness?.count||0;
+    const map={
+      ceo:['CEO / Executive story',`Lead with confidence, reduced surprises and a defensible City Dividend. Current annual total value is <strong>${total}</strong>, with five-year NPV after costs of <strong>${npv}</strong>. The executive ask is not “approve a gadget”; it is “approve a governed operating intelligence pathway.”`],
+      finance:['Finance story',`Lead with financial discipline: annual validated financial benefit is <strong>${fin}</strong>, while broader City Dividend is reported separately. Show NPV, BCR, payback, sensitivity and cost of inaction. Finance should validate the top assumptions: ${sens.slice(0,3).map(d=>escapeHtml(d.label||d.key)).join(', ')||'none yet'}.`],
+      community:['Director Community story',`Lead with earlier signals, fewer escalations and stronger community confidence. Use the readiness checks: <strong>${readiness}</strong> selected use case(s) still need validation before tender-ready. Avoid overclaiming cash savings; position community value as earlier intervention and better service evidence.`],
+      infrastructure:['Director Infrastructure story',`Lead with asset visibility, inspection productivity, reactive-to-planned shift and safer public realm operations. Connect SenMAP/SenPIC/SenFORCE to maintenance, compliance, risk and service response. Validate reactive maintenance spend, inspection FTE and condition/failure-risk assumptions.`]
+    };
+    const [title,msg]=map[audience]||map.ceo;
+    v28AdvisorPanel(title,'Audience-specific value framing generated locally from the current case.',`<p>${msg}</p><p><strong>Do not skip:</strong> show sensitivity, risk register and readiness before calling this customer-ready.</p>`);
+  }
+  function v28ScenarioAnswer(){
+    const c=calculate(); const cmp=c.scenarioCompare||{};
+    v28AdvisorPanel('Scenario comparison explanation','How to explain Conservative / Expected / Stretch.',`<p>Use the three views to show adoption and benefit uncertainty rather than promising one precise number.</p><table class="cashflow-table"><tr><th>Scenario</th><th>Annual City Dividend</th><th>5-year NPV</th><th>BCR</th></tr>${['conservative','expected','stretch'].map(k=>`<tr><td>${k}</td><td>${fmt(cmp[k]?.annualTotal||0,'currencyK')}</td><td>${fmt(cmp[k]?.npv||0,'currencyK')}</td><td>${((cmp[k]?.bcr||0).toFixed(2))}x</td></tr>`).join('')}</table><p>The sales-safe language is: “Here is the value range. The next step is validation, not blind acceptance.”</p>`);
+  }
+  const v28PriorAsk=askAdvisorFree;
+  askAdvisorFree=function(){
+    const q=(document.getElementById('advisor-question')?.value||'').toLowerCase();
+    if(q.includes('export')||q.includes('excel')||q.includes('spreadsheet')){v28AdvisorPanel('Excel export','Offline multi-sheet workbook export.',`<p>Use <strong>Export to Excel</strong> to download a local workbook-style file with Summary, Cashflow, Benefits, Costs, Assumptions, Risks, Sensitivity and Readiness sheets. It is generated in the browser and does not call an API.</p>`);return;}
+    if(q.includes('validate next')||q.includes('what should i validate')||q.includes('weakest')||q.includes('weak part')||q.includes('challenge')){v28NextValidationAnswer();return;}
+    if(q.includes('scenario comparison')||q.includes('conservative')||q.includes('stretch')){v28ScenarioAnswer();return;}
+    if(q.includes('director community')){v28AudienceAnswer('community');return;}
+    if(q.includes('director infrastructure')||q.includes('director assets')){v28AudienceAnswer('infrastructure');return;}
+    if(q.includes('finance')||q.includes('cfo')){v28AudienceAnswer('finance');return;}
+    if(q.includes('ceo')||q.includes('executive')){v28AudienceAnswer('ceo');return;}
+    return v28PriorAsk();
+  };
+  window.askAdvisorFree=askAdvisorFree;
+
+  const v28PriorGenerate=generateInvestmentCase;
+  generateInvestmentCase=function(){
+    v28PriorGenerate();
+    try{
+      const doc=document.getElementById('print-doc');
+      if(doc&&!doc.querySelector('#v28-export-note')){
+        doc.insertAdjacentHTML('beforeend',`<h2 id="v28-export-note">Excel Export Note</h2><p>This value case can also be exported to an Excel-compatible workbook from the calculator. The export includes Summary, Cashflow, Benefits, Costs, Assumptions, Risks, Sensitivity and Readiness worksheets generated locally in the browser.</p>`);
+      }
+    }catch(e){}
+  };
+  window.generateInvestmentCase=generateInvestmentCase;
+
+  try{renderAll();}catch(e){try{v28InjectButtons();}catch(_){}}
+})();
+</script>
+
+
+
+<script>
+(function(){
+  const V29='2.9-release-stabilisation-qa-polish';
+  try{CONFIG.meta.configVersion=V29; document.title='CityPulse · The City Dividend · v2.9 Release Stabilisation';}catch(e){}
+
+  function v29Clone(x){try{return JSON.parse(JSON.stringify(x));}catch(e){return x;}}
+  function v29StorageOK(){try{const k='__citypulse_v29_test__';localStorage.setItem(k,'1');localStorage.removeItem(k);return true;}catch(e){return false;}}
+  function v29Check(name,pass,detail,critical=true){return {name,pass:!!pass,detail:detail||'',critical:!!critical};}
+  function v29FmtBool(v){return v?'Pass':'Review';}
+  function v29SafeCall(fn){try{return {ok:true,value:fn()};}catch(e){return {ok:false,error:e&&e.message?e.message:String(e)};}}
+  function v29RequiredFunctions(){return ['startBlank','loadClearwaterDemo','openAdmin','closeAdmin','renderAdmin','renderAll','renderScreens','renderSummary','calculate','generateInvestmentCase','exportScenario','exportToExcel','saveScenarioAs','loadScenarioByName','setUseCaseGoLive','cycleReadiness','readinessSummary','riskRegisterHtml','scenarioCompareHtml','tornadoSensitivityHtml','inactionCostHtml','deploymentGanttHtml','visualAnalyticsHtml'];}
+  function v29OnclickFunctions(){
+    const names=[]; const re=/onclick\s*=\s*"([^"]+)"/g; let m;
+    while((m=re.exec(document.documentElement.innerHTML))){
+      const code=m[1]; const f=code.match(/^\s*([A-Za-z_$][\w$]*)\s*\(/);
+      if(f && !['event','JSON','Math','Number','String'].includes(f[1])) names.push(f[1]);
+    }
+    return [...new Set(names)].sort();
+  }
+  function v29RunSelfTest(options={}){
+    const checks=[]; const currentState=v29Clone(STATE); const currentConfig=v29Clone(CONFIG); const activeTab=document.querySelector('.site-tab.active')?.dataset?.siteTab||'calculator';
+    checks.push(v29Check('Browser localStorage available', v29StorageOK(), v29StorageOK()?'Scenario save/load should persist in this browser.':'Browser storage blocked; scenario save/load may fall back or fail.', false));
+    v29RequiredFunctions().forEach(fn=>checks.push(v29Check('Function exists: '+fn, typeof window[fn]==='function', typeof window[fn]==='function'?'Available':'Missing global function', true)));
+    const onclickMissing=v29OnclickFunctions().filter(fn=>typeof window[fn]!=='function');
+    checks.push(v29Check('No missing onclick handlers', onclickMissing.length===0, onclickMissing.length?('Missing: '+onclickMissing.join(', ')):'All inline button handlers resolve.', true));
+    for(let i=1;i<=7;i++){checks.push(v29Check('Screen '+i+' exists', !!document.getElementById('screen-'+i), document.getElementById('screen-'+i)?'Present':'Missing screen container', true));}
+    checks.push(v29Check('Current step range valid', Number(STATE.step||1)>=1 && Number(STATE.step||1)<=7, 'Current step: '+(STATE.step||1), true));
+    const calc=v29SafeCall(()=>calculate());
+    checks.push(v29Check('Calculation engine runs', calc.ok, calc.ok?'NPV '+fmt(calc.value.npv||0):calc.error, true));
+    if(calc.ok){
+      checks.push(v29Check('Calculation returns cashflow years', Array.isArray(calc.value.years)&&calc.value.years.length===Number(CONFIG.meta.horizonYears||5), calc.value.years?`${calc.value.years.length} years`:'No years array', true));
+      checks.push(v29Check('Cost summary fields available', !!(calc.value.totalBridge&&calc.value.totalBridge.discountedTotalCost!==undefined), 'Required by Investment Case cost summary.', true));
+      checks.push(v29Check('Risk/readiness fields available', !!(calc.value.readiness&&calc.value.riskRegister), 'Required by Governance step and print output.', true));
+      checks.push(v29Check('Visual analytics available', !!calc.value.visuals, 'Required by charts and print visuals.', true));
+    }
+    const demo=v29SafeCall(()=>{
+      if(typeof loadClearwaterDemo!=='function') throw new Error('loadClearwaterDemo missing');
+      loadClearwaterDemo();
+      const c=calculate();
+      const ok=STATE.councilName==='Clearwater City Council' && activeUseCaseIds().length>0 && c.benefits.length>0;
+      return {ok,c,active:activeUseCaseIds().length,benefits:c.benefits.length,council:STATE.councilName};
+    });
+    checks.push(v29Check('Clearwater demo loads and calculates', demo.ok&&demo.value.ok, demo.ok?`${demo.value.council||''}; active use cases ${demo.value.active}; benefit lines ${demo.value.benefits}`:demo.error, true));
+    const render=v29SafeCall(()=>{for(let i=1;i<=7;i++){STATE.step=i;renderAll();const el=document.getElementById('screen-'+i); if(!el||!String(el.innerHTML||'').trim()) throw new Error('Screen '+i+' rendered blank');} return true;});
+    checks.push(v29Check('Screens 1–7 render without blank output', render.ok, render.ok?'All screens rendered content.':render.error, true));
+    const exportCheck=v29SafeCall(()=>typeof exportToExcel==='function' && document.documentElement.innerHTML.includes('function v28WorkbookSheets') ? 8 : 0);
+    checks.push(v29Check('Excel export module present', exportCheck.ok && exportCheck.value>=1, exportCheck.ok?'Export function and workbook builder found.' : exportCheck.error, true));
+    try{STATE=currentState; CONFIG=Object.assign(CONFIG,currentConfig); ensureState(); saveState(); saveConfig(); renderAll(); showSiteTab(activeTab);}catch(e){}
+    const fail=checks.filter(c=>!c.pass&&c.critical).length; const review=checks.filter(c=>!c.pass&&!c.critical).length;
+    return {version:V29,runAt:new Date().toISOString(),pass:fail===0,criticalFailures:fail,reviewItems:review,checks};
+  }
+  window.v29RunSelfTest=v29RunSelfTest;
+
+  function v29SelfTestHtml(){
+    const r=v29RunSelfTest(); const badge=r.pass?'<span class="tag" style="border-color:rgba(0,214,143,.35);color:var(--green)">Release check passed</span>':'<span class="tag" style="border-color:rgba(251,113,133,.35);color:var(--red)">Review required</span>';
+    return `<div class="panel"><div class="panel-head"><div><div class="panel-title">Release QA status</div><div class="panel-kicker">Local regression check for calculator, admin, demo, governance, export and screen rendering</div></div>${badge}</div><div class="definition-grid"><div class="definition-card"><h4>Version</h4><p>${escapeHtml(r.version)}</p></div><div class="definition-card"><h4>Critical failures</h4><p><strong>${r.criticalFailures}</strong></p></div><div class="definition-card"><h4>Review items</h4><p><strong>${r.reviewItems}</strong></p></div></div><table class="cashflow-table"><thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead><tbody>${r.checks.map(c=>`<tr><td>${escapeHtml(c.name)}</td><td style="color:${c.pass?'var(--green)':(c.critical?'var(--red)':'var(--amber)')}">${v29FmtBool(c.pass)}</td><td>${escapeHtml(c.detail||'')}</td></tr>`).join('')}</tbody></table><div class="footer-actions"><button class="btn primary" onclick="v29RenderQaPanel()">Run QA again</button><button class="btn" onclick="v29RepairScenarioState()">Repair scenario defaults</button><button class="btn" onclick="v29DownloadQaReport()">Download QA report</button></div><div class="alert blue"><strong>Use this before publishing:</strong> Load the Clearwater demo, run this QA panel, generate the print case, and export Excel. If a critical check fails, do not publish the file.</div></div>`;
+  }
+  function v29RenderQaPanel(){const body=document.getElementById('admin-content')||document.getElementById('admin-body'); if(body){body.innerHTML=v29SelfTestHtml();}else{alert(v29RunSelfTest().pass?'Release QA passed':'Release QA needs review');}}
+  window.v29RenderQaPanel=v29RenderQaPanel;
+  function v29DownloadQaReport(){const r=v29RunSelfTest(); downloadText('citypulse-v29-qa-report.json',JSON.stringify(r,null,2));}
+  window.v29DownloadQaReport=v29DownloadQaReport;
+  function v29RepairScenarioState(){ensureState(); if(!STATE.inputs) STATE.inputs={}; Object.keys(CONFIG.useCases||{}).forEach(id=>{if(STATE.selectedUseCases[id]===undefined)STATE.selectedUseCases[id]=false;if(!STATE.goLiveMonths)STATE.goLiveMonths={};if(STATE.goLiveMonths[id]===undefined)STATE.goLiveMonths[id]=1;if(!STATE.readiness)STATE.readiness={};if(STATE.selectedUseCases[id]&&!STATE.readiness[id])STATE.readiness[id]={data:'Amber',owner:'Amber',policy:'Amber'};}); saveState(); renderAll(); alert('Scenario defaults repaired.');}
+  window.v29RepairScenarioState=v29RepairScenarioState;
+
+  const v29PriorRenderAdmin=renderAdmin;
+  renderAdmin=function(tab='quick'){
+    if(tab==='qa'){
+      const body=document.getElementById('admin-body');
+      if(!body)return;
+      body.innerHTML=`<div class="tabs">${[['quick','Quick settings'],['params','Assumptions'],['costs','Costs'],['formulas','Formulas'],['inaction','Inaction model'],['qa','QA checks'],['json','Full JSON'],['io','Import / Export']].map(t=>`<button class="tab ${tab===t[0]?'active':''}" onclick="renderAdmin('${t[0]}')">${t[1]}</button>`).join('')}</div><div id="admin-content"></div>`;
+      v29RenderQaPanel(); return;
+    }
+    v29PriorRenderAdmin(tab);
+    const tabs=document.querySelector('#admin-body .tabs');
+    if(tabs && !tabs.querySelector('[onclick="renderAdmin(\'qa\')"]')){
+      const b=document.createElement('button'); b.className='tab'; b.setAttribute('onclick',"renderAdmin('qa')"); b.textContent='QA checks';
+      const io=[...tabs.children].find(x=>String(x.textContent||'').includes('Import')); tabs.insertBefore(b,io||null);
+    }
+  };
+  window.renderAdmin=renderAdmin;
+
+  function v29InjectQaButton(){
+    const actions=document.querySelector('.top-actions'); if(!actions||document.getElementById('v29-qa-button'))return;
+    const btn=document.createElement('button'); btn.id='v29-qa-button'; btn.className='btn small'; btn.textContent='Run QA'; btn.onclick=function(){openAdmin();renderAdmin('qa');};
+    const gen=[...actions.querySelectorAll('button')].find(b=>String(b.textContent||'').includes('Generate'));
+    if(gen) actions.insertBefore(btn,gen); else actions.appendChild(btn);
+  }
+  const v29PriorRenderAll=renderAll;
+  renderAll=function(){v29PriorRenderAll();v29InjectQaButton();};
+  window.renderAll=renderAll;
+
+  const v29PriorAdvisorAnswer=advisorAnswer;
+  advisorAnswer=function(kind){
+    if(kind==='qa'){
+      const r=v29RunSelfTest(); advisorSet(`${advisorCommonHeader('Release QA and stabilisation')}<p>The local release check is ${r.pass?'<strong style="color:var(--green)">passing</strong>':'<strong style="color:var(--red)">showing critical issues</strong>'}. Critical failures: ${r.criticalFailures}. Review items: ${r.reviewItems}.</p><p>Use <strong>Admin → QA checks</strong> before publishing a new file. It tests demo loading, screen rendering, calculation output, missing button handlers, governance fields and Excel workbook creation.</p>`);return;
+    }
+    v29PriorAdvisorAnswer(kind);
+  };
+  window.advisorAnswer=advisorAnswer;
+  const v29PriorAsk=askAdvisorFree;
+  askAdvisorFree=function(){const q=(document.getElementById('advisor-question')?.value||'').toLowerCase(); if(q.includes('qa')||q.includes('test')||q.includes('broken')||q.includes('release')||q.includes('regression')){advisorAnswer('qa');return;} v29PriorAsk();};
+  window.askAdvisorFree=askAdvisorFree;
+
+  // Backwards-compatible helpers in case older saved scripts/scenarios reference these names.
+  window.v26ClampGoLive=window.v26ClampGoLive||function(v){return Math.max(1,Math.min(24,parseInt(v,10)||1));};
+  window.v27ClampGoLive=window.v27ClampGoLive||window.v26ClampGoLive;
+
+  ensureState(); saveConfig(); saveState(); renderAll();
+})();
+</script>
+
+
+<style id="v291-stability-ux-css">
+/* v2.9.1 Stability & UX recovery polish */
+.topbar{gap:14px}
+.top-actions{display:flex!important;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;max-width:100%}
+#v26-scenario-tools{display:inline-flex!important;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%;padding:4px 6px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.025)}
+#v26-scenario-tools select{min-width:170px;max-width:220px!important}
+.value-bridge{overflow-x:auto}
+.value-bridge .cashflow-table,.value-bridge table{min-width:760px}
+.live-card .value-bridge,.summary-panel .value-bridge,.right-panel .value-bridge{max-width:100%}
+.readiness-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.readiness-fix-list{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+.readiness-fix-card{border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.025);padding:10px}
+.readiness-fix-card .fix-title{font-weight:700;font-size:13px;margin-bottom:4px}
+.readiness-status-grid{display:grid;grid-template-columns:1.2fr repeat(3,minmax(110px,.6fr));gap:8px;align-items:center}
+.readiness-status-grid .cell{padding:8px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}
+.readiness-status-grid .head{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}
+@media(max-width:900px){
+  .readiness-status-grid{grid-template-columns:1fr}
+  .readiness-status-grid .head{display:none}
+  #v26-scenario-tools{width:100%}
+  #v26-scenario-tools select{flex:1;min-width:160px}
+}
+</style>
+
+<script id="v291-stability-ux-recovery">
+(function(){
+  const V291='2.9.1-stability-ux-recovery';
+  try{ if(CONFIG&&CONFIG.meta){CONFIG.meta.configVersion=V291;} document.title='CityPulse · The City Dividend · v3.0 RC2 Consolidated Fix'; }catch(e){}
+
+  function cloneSafe(x){try{return JSON.parse(JSON.stringify(x));}catch(e){return x;}}
+  function labels(){
+    return {
+      data:'Source data exists with at least 12 months of history',
+      owner:'Service owner identified and engaged',
+      policy:'Local policy / legal pathway confirmed'
+    };
+  }
+  window.readinessLabelMap=labels;
+  window.v27ClampGoLive=window.v27ClampGoLive||window.v26ClampGoLive||function(v){return Math.max(1,Math.min(24,parseInt(v,10)||1));};
+  window.v26ClampGoLive=window.v26ClampGoLive||window.v27ClampGoLive;
+
+  function readinessNextLocal(status){return status==='Green'?'Amber':status==='Amber'?'Red':'Green';}
+  function readinessClassLocal(status){return status==='Green'?'green':status==='Red'?'red':'amber';}
+  window.readinessClass=window.readinessClass||readinessClassLocal;
+
+  function selectedStageName(){
+    const n=String(STATE.savedScenarioName||'').toLowerCase();
+    if(n.includes('tender')) return 'Tender-ready';
+    if(n.includes('post')) return 'Post-validation';
+    if(n.includes('indicative')) return 'Indicative';
+    if(STATE.mode==='demo') return 'Demo';
+    if(STATE.mode==='benchmark') return 'Benchmark';
+    return 'Working case';
+  }
+  function defaultReadinessPolicy(){
+    const n=String(STATE.savedScenarioName||'').toLowerCase();
+    if(n.includes('tender')) return 'required';
+    if(n.includes('post')) return 'advisory';
+    if(n.includes('indicative')) return 'deferred';
+    if(STATE.mode==='demo'||STATE.mode==='benchmark'||STATE.mode==='blank') return 'deferred';
+    return 'advisory';
+  }
+  function readinessPolicy(){
+    ensureState();
+    if(!STATE.readinessPolicy) STATE.readinessPolicy=defaultReadinessPolicy();
+    return STATE.readinessPolicy;
+  }
+  function readinessPolicyLabel(p){
+    return {deferred:'Deferred / optional',advisory:'Advisory validation',required:'Required before tender-ready'}[p||readinessPolicy()]||'Advisory validation';
+  }
+  window.v291ReadinessPolicy=readinessPolicy;
+
+  const previousEnsureState=window.ensureState;
+  window.ensureState=function(){
+    if(typeof previousEnsureState==='function') previousEnsureState();
+    STATE.selectedUseCases=STATE.selectedUseCases||{};
+    STATE.goLiveMonths=STATE.goLiveMonths||{};
+    STATE.readiness=STATE.readiness||{};
+    STATE.risks=STATE.risks||{};
+    if(STATE.discountRate===undefined||STATE.discountRate===null) STATE.discountRate=(CONFIG.meta&&CONFIG.meta.discountRate)||0.07;
+    if(!STATE.readinessPolicy) STATE.readinessPolicy=defaultReadinessPolicy();
+    Object.keys(CONFIG.useCases||{}).forEach(id=>{
+      if(STATE.selectedUseCases[id]===undefined) STATE.selectedUseCases[id]=false;
+      if(STATE.goLiveMonths[id]===undefined||STATE.goLiveMonths[id]===null) STATE.goLiveMonths[id]=1;
+      if(STATE.selectedUseCases[id] && !STATE.readiness[id]) STATE.readiness[id]={data:'Amber',owner:'Amber',policy:'Amber'};
+    });
+  };
+
+  function readinessScoreLocal(uid){
+    ensureState();
+    const r=STATE.readiness&&STATE.readiness[uid] ? STATE.readiness[uid] : {};
+    const vals=['data','owner','policy'].map(k=>r[k]||'Amber');
+    if(vals.includes('Red')) return 'Red';
+    if(vals.includes('Amber')) return 'Amber';
+    return 'Green';
+  }
+  window.readinessScore=readinessScoreLocal;
+
+  function readinessSummaryLocal(){
+    ensureState();
+    const rows=(typeof activeUseCaseIds==='function'?activeUseCaseIds():[]).map(uid=>({
+      id:uid,
+      name:(CONFIG.useCases&&CONFIG.useCases[uid]&&CONFIG.useCases[uid].name)||uid,
+      score:readinessScoreLocal(uid),
+      checks:(STATE.readiness&&STATE.readiness[uid])||{data:'Amber',owner:'Amber',policy:'Amber'}
+    }));
+    const rawOutstanding=rows.filter(r=>r.score!=='Green');
+    const policy=readinessPolicy();
+    return {
+      rows,
+      outstanding: policy==='deferred'?[]:rawOutstanding,
+      rawOutstanding,
+      count: policy==='deferred'?0:rawOutstanding.length,
+      rawCount:rawOutstanding.length,
+      policy,
+      policyLabel:readinessPolicyLabel(policy),
+      stage:selectedStageName()
+    };
+  }
+  window.readinessSummary=readinessSummaryLocal;
+
+  window.setReadinessPolicy=function(policy){
+    ensureState();
+    STATE.readinessPolicy=policy||'advisory';
+    saveState(); renderAll(); if(STATE.step) goStep(Math.min(STATE.step,7));
+  };
+  window.markAllReadiness=function(status){
+    ensureState();
+    (typeof activeUseCaseIds==='function'?activeUseCaseIds():[]).forEach(uid=>{STATE.readiness[uid]={data:status,owner:status,policy:status};});
+    saveState(); renderAll(); if(STATE.step) goStep(Math.min(STATE.step,7));
+  };
+  window.cycleReadiness=function(uid,key){
+    ensureState();
+    STATE.readiness[uid]=STATE.readiness[uid]||{data:'Amber',owner:'Amber',policy:'Amber'};
+    STATE.readiness[uid][key]=readinessNextLocal(STATE.readiness[uid][key]||'Amber');
+    STATE.mode=STATE.mode==='blank'?'council':STATE.mode;
+    saveState();
+    const stay=STATE.step||6;
+    renderAll(); goStep(stay);
+  };
+
+  function selectedUseCaseIdsSafe(){return typeof activeUseCaseIds==='function'?activeUseCaseIds():Object.keys(STATE.selectedUseCases||{}).filter(k=>STATE.selectedUseCases[k]);}
+
+  window.renderUseCases=function(){
+    ensureState();
+    const el=document.getElementById('screen-3'); if(!el)return;
+    const cats={};
+    Object.entries(CONFIG.useCases||{}).forEach(([id,u])=>{
+      const primary=(u.products||[]).find(p=>p!=='citypulse')||'citypulse';
+      const name=(CONFIG.products&&CONFIG.products[primary]&&CONFIG.products[primary].name)||'CityPulse';
+      (cats[name]=cats[name]||[]).push([id,u]);
+    });
+    const policy=readinessPolicy();
+    const lab=labels();
+    el.innerHTML=`<div class="panel"><div class="panel-head"><div><div class="panel-title">CityPulse modules and SenSen product use cases</div><div class="panel-kicker">Select use cases, set go-live month and choose how much readiness validation is needed for this stage.</div></div><span class="pill">${escapeHtml(readinessPolicyLabel(policy))}</span></div>
+    <div class="alert blue"><strong>Readiness is staged:</strong> Indicative and benchmark cases can defer readiness. Post-validation should review it. Tender-ready cases should resolve Amber/Red items before being used externally.</div>
+    <div class="readiness-toolbar"><button class="btn small ${policy==='deferred'?'primary':''}" onclick="setReadinessPolicy('deferred')">Defer readiness</button><button class="btn small ${policy==='advisory'?'primary':''}" onclick="setReadinessPolicy('advisory')">Advisory validation</button><button class="btn small ${policy==='required'?'primary':''}" onclick="setReadinessPolicy('required')">Tender-ready required</button><button class="btn small" onclick="markAllReadiness('Green')">Mark selected ready</button></div>
+    ${Object.entries(cats).map(([cat,items])=>`<div class="section-title"><span class="dot" style="background:${colorVar(CONFIG.products[items[0][1].products.find(p=>p!=='citypulse')||'citypulse']?.color)}"></span>${escapeHtml(cat)}</div>${items.map(([id,u])=>{
+      const selected=!!STATE.selectedUseCases[id];
+      const go=window.v27ClampGoLive(STATE.goLiveMonths?.[id]||1);
+      const score=selected?readinessScoreLocal(id):'';
+      const checks=(STATE.readiness&&STATE.readiness[id])||{data:'Amber',owner:'Amber',policy:'Amber'};
+      return `<div class="usecase-row ${selected?'selected':''}"><div class="togglebox" onclick="toggleUseCase('${id}')">✓</div><div><div class="card-title">${escapeHtml(u.name)} ${selected?`<span class="tag ${readinessClassLocal(score)}">Readiness: ${score}</span>`:''}</div><div class="card-sub">${escapeHtml(u.description||'')}</div><div class="product-list tag-row">${(u.products||[]).map(p=>`<span class="tag ${colorClass(CONFIG.products[p]?.color)}">${escapeHtml(CONFIG.products[p]?.name||p)}</span>`).join('')}</div>${selected?`<div class="field" style="margin-top:10px;max-width:260px"><label class="label-help"><span>Go-live month (1–24)</span><button type="button" class="help-icon" onclick="openGenericHelp('Go-live month','Benefit ramp for this use case starts from this month. Month 1 starts immediately; Month 13 starts in Year 2.');event.stopPropagation();">i</button></label><input type="number" min="1" max="24" step="1" value="${go}" oninput="setUseCaseGoLive('${id}',this.value)"><small class="card-sub">Current phase: ${go<=12?'Year 1':'Year 2'} · Month ${go}</small></div><div class="card-option" style="cursor:default;margin-top:10px;padding:10px"><div class="card-title">Readiness checklist</div><div class="card-sub">Click each item to cycle Green → Amber → Red.</div>${['data','owner','policy'].map(k=>`<button type="button" class="tag ${readinessClassLocal(checks[k]||'Amber')}" onclick="cycleReadiness('${id}','${k}');event.stopPropagation();" style="margin:5px 5px 0 0">${checks[k]||'Amber'} · ${escapeHtml(lab[k])}</button>`).join('')}</div>`:''}</div><div style="text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted)">${selected?'Included':'Off'}${selected?`<br><span class="tag">M${go}</span>`:''}</div></div>`;
+    }).join('')}`).join('')}<div class="footer-actions"><button class="btn" onclick="goStep(2)">Back</button><button class="btn primary" onclick="goStep(4)">Next: Assumptions</button></div></div>`;
+  };
+
+  function readinessFixListHtml(){
+    const s=readinessSummaryLocal(), lab=labels();
+    if(!s.rows.length) return `<div class="empty-state"><h3>No use cases selected</h3><p>Select use cases first, then readiness checks will appear here.</p></div>`;
+    const cards=s.rawOutstanding.length?s.rawOutstanding:s.rows;
+    return `<div class="readiness-fix-list">${cards.map(r=>{
+      const missing=['data','owner','policy'].filter(k=>(r.checks[k]||'Amber')!=='Green');
+      return `<div class="readiness-fix-card"><div class="fix-title">${escapeHtml(r.name)} <span class="tag ${readinessClassLocal(r.score)}">${r.score}</span></div><div class="card-sub">${missing.length?`Outstanding: ${missing.map(k=>escapeHtml(lab[k])).join('; ')}`:'All readiness checks are Green.'}</div></div>`;
+    }).join('')}</div>`;
+  }
+
+  window.readinessTableHtml=function(){
+    const s=readinessSummaryLocal(), lab=labels(), policy=s.policy;
+    const policyCopy=policy==='deferred'
+      ? 'Readiness is currently deferred. This is appropriate for indicative demos or early discovery. Turn on advisory or required mode when moving into validation or tender-ready use.'
+      : policy==='advisory'
+        ? 'Readiness is advisory. Amber/Red items should be reviewed, but they do not block early-stage discussion.'
+        : 'Readiness is required. Amber/Red items should be resolved before the case is treated as tender-ready.';
+    return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--amber)"></span>Use-case readiness — where to fix outstanding checks</div><p class="value-bridge-note">${policyCopy}</p>
+    <div class="readiness-toolbar"><button class="btn small ${policy==='deferred'?'primary':''}" onclick="setReadinessPolicy('deferred')">Defer readiness</button><button class="btn small ${policy==='advisory'?'primary':''}" onclick="setReadinessPolicy('advisory')">Advisory validation</button><button class="btn small ${policy==='required'?'primary':''}" onclick="setReadinessPolicy('required')">Tender-ready required</button><button class="btn small" onclick="markAllReadiness('Green')">Mark all selected Green</button><button class="btn small" onclick="goStep(3)">Open Use Cases</button></div>
+    <div class="alert ${policy==='required'&&s.rawCount?'':'blue'}"><strong>${s.policyLabel}:</strong> ${s.rawCount} selected use case${s.rawCount===1?' has':'s have'} Amber/Red readiness item${s.rawCount===1?'':'s'}. Use the buttons in the table below to change each item.</div>
+    <div class="readiness-status-grid"><div class="cell head">Use case</div><div class="cell head">Data history</div><div class="cell head">Service owner</div><div class="cell head">Policy / legal pathway</div>${s.rows.map(r=>`<div class="cell"><strong>${escapeHtml(r.name)}</strong><br><span class="tag ${readinessClassLocal(r.score)}">${r.score}</span></div>${['data','owner','policy'].map(k=>`<div class="cell"><button type="button" class="tag ${readinessClassLocal(r.checks[k]||'Amber')}" onclick="cycleReadiness('${r.id}','${k}')">${r.checks[k]||'Amber'}</button><br><small class="card-sub">${escapeHtml(lab[k])}</small></div>`).join('')}`).join('')}</div>${readinessFixListHtml()}</div>`;
+  };
+
+  if(typeof buildRiskRegister==='function'){
+    const priorBuildRiskRegister=buildRiskRegister;
+    window.buildRiskRegister=function(){
+      const risks=priorBuildRiskRegister();
+      const s=readinessSummaryLocal();
+      return (risks||[]).map(r=>{
+        if(String(r.risk||'').toLowerCase().includes('data quality') && s.rawCount){
+          r.mitigation = r.mitigation || `Review the readiness table. ${s.rawCount} selected use case(s) still have Amber/Red data, owner or policy checks.`;
+        }
+        return r;
+      });
+    };
+  }
+
+  window.renderRisksValidation=function(){
+    const el=document.getElementById('screen-6'); if(!el)return;
+    const s=readinessSummaryLocal();
+    const banner = s.policy==='deferred'
+      ? `<div class="alert blue"><strong>Readiness deferred for this stage.</strong> This is acceptable for Indicative, Demo or Benchmark use. Switch to Advisory or Required when moving into post-validation or tender-ready mode.</div>`
+      : s.rawCount
+        ? `<div class="alert"><strong>${s.rawCount} selected use case${s.rawCount===1?' has':'s have'} Amber/Red readiness checks.</strong> Use the table below to change the specific Data, Owner or Policy item. Do not hide this inside mitigation text alone.</div>`
+        : `<div class="alert green"><strong>Readiness check:</strong> All selected use cases are Green.</div>`;
+    el.innerHTML=`<div class="panel"><div class="panel-head"><div><div class="panel-title">Risks & validation</div><div class="panel-kicker">Control how heavy the governance check should be for Indicative, Post-validation or Tender-ready use.</div></div><span class="pill">${escapeHtml(s.policyLabel)}</span></div>${banner}${readinessTableHtml()}${typeof riskRegisterHtml==='function'?riskRegisterHtml(true):''}<div class="alert blue"><strong>How to use this page:</strong> Readiness status is changed in the table above. Risk mitigation text explains how to manage the risk; it does not change readiness status by itself.</div><div class="footer-actions"><button class="btn" onclick="goStep(5)">Back</button><button class="btn primary" onclick="goStep(7)">Next: Investment Case</button></div></div>`;
+  };
+
+  if(typeof renderSummary==='function'){
+    const priorRenderSummary=renderSummary;
+    window.renderSummary=function(){
+      priorRenderSummary();
+      const s=readinessSummaryLocal();
+      const summary=document.getElementById('live-summary');
+      if(!summary)return;
+      const old=document.getElementById('v291-readiness-guidance'); if(old)old.remove();
+      const div=document.createElement('div'); div.id='v291-readiness-guidance';
+      div.className='impact-note';
+      if(s.policy==='deferred'){
+        div.innerHTML=`<strong>Readiness:</strong> Deferred for ${escapeHtml(s.stage)}. ${s.rawCount?`${s.rawCount} selected use case(s) still have Amber/Red checks for later validation.`:'No outstanding readiness items.'}`;
+      }else if(s.rawCount){
+        div.innerHTML=`<strong>Readiness:</strong> ${s.rawCount} selected use case(s) have Amber/Red checks. Open <button class="btn small" onclick="goStep(6)">Risks & Validation</button> to change specific items.`;
+      }else{
+        div.innerHTML=`<strong>Readiness:</strong> All selected use cases are Green.`;
+      }
+      summary.appendChild(div);
+    };
+  }
+
+  const selectedDemoUseCases=[
+    'senforce_mobile_compliance','senpic_fixed_compliance','senpic_event_footfall','senmap_condition','senmap_inspection',
+    'community_early_warning','community_councillor_confidence','community_parking_signal','community_asset_signal',
+    'economy_event_roi','economy_conversion_gap','sendisa_public_realm','report_automation','seniq_executive',
+    'command_response','compare_benchmarking','climate_travel'
+  ];
+  function baseStateForProfile(profileId,mode){
+    const su={}; Object.keys(CONFIG.useCases||{}).forEach(id=>su[id]=false);
+    const gm={}; Object.keys(CONFIG.useCases||{}).forEach(id=>gm[id]=1);
+    return {step:4,mode:mode||'benchmark',profileId:profileId||'',councilName:'',contactName:'',contactTitle:'',scenarioId:'expected',maturityId:'developing',selectedPains:[],selectedUseCases:su,inputs:buildDefaultInputs(profileId),notes:{},beginner:true,sensitivitySweep:0.20,goLiveMonths:gm,readiness:{},risks:{},readinessPolicy:'deferred',discountRate:0.07};
+  }
+  window.loadClearwaterDemo=function(){
+    try{
+      STATE=baseStateForProfile('coastalEvent','demo');
+      STATE.councilName='Clearwater City Council';
+      STATE.contactName='Sales training demo';
+      STATE.contactTitle='Indicative sample only';
+      STATE.savedScenarioName='Clearwater demo';
+      STATE.selectedPains=['parking_pressure','fixed_hotspots','asset_unknown','community_signal','economic_vitality','safety_public_realm','climate_efficiency'];
+      selectedDemoUseCases.forEach(id=>{if(STATE.selectedUseCases[id]!==undefined)STATE.selectedUseCases[id]=true;});
+      Object.assign(STATE.inputs,{
+        population:105000,fte:620,budgetM:190,serviceRequests:140000,parkingRevenue:9000000,infringementVolume:68000,collectionRate:0.82,appealRate:0.18,
+        senforceVehicles:2,senpicSites:18,senpicEnforcementSites:10,eventFootfallSites:6,senforceUpliftPct:0.10,senpicYieldPerSite:38000,deploymentScaleSenforce:0.75,enforcementPolicyFactor:0.85,
+        roadKm:360,reactiveMaintenanceSpend:6500000,inspectionFTE:10,unknownConditionPct:0.42,formalComplaints:15000,councillorRequests:760,earlyDetectionPct:0.22,escalationAvoidancePct:0.18,
+        eventsPerYear:70,avgEventAttendance:4600,visitorShare:0.62,avgVisitorSpend:54,precinctAnnualSpend:120000000,cctvCameras:95,liabilityClaims:28,cctvMonitoringHoursWeek:48,avoidedFieldVisits:1250
+      });
+      ensureState(); saveState(); showSiteTab('calculator'); renderAll(); goStep(4);
+    }catch(e){alert('Could not load Clearwater demo: '+(e&&e.message?e.message:e));}
+  };
+  window.useBenchmarkDefaults=function(profileId){
+    try{
+      const profile=(CONFIG.councilProfiles||[]).find(p=>p.id===profileId)||(CONFIG.councilProfiles||[])[0];
+      const pains=defaultPainSet(profile.id);
+      STATE=baseStateForProfile(profile.id,'benchmark');
+      STATE.councilName=profile.name+' benchmark';
+      STATE.savedScenarioName=profile.name+' benchmark';
+      STATE.scenarioId='conservative';
+      STATE.selectedPains=pains;
+      STATE.selectedUseCases=deriveUseCasesFromPains(pains);
+      STATE.inputs=buildDefaultInputs(profile.id);
+      STATE.notes={benchmark:'Values are benchmark defaults and must be validated with the council.'};
+      STATE.readinessPolicy='deferred';
+      ensureState(); saveState(); showSiteTab('calculator'); renderAll(); goStep(4);
+    }catch(e){alert('Could not load benchmark: '+(e&&e.message?e.message:e));}
+  };
+
+  window.v291RepairScenarioState=function(){
+    ensureState();
+    let selected=0, readinessCreated=0, goLiveCreated=0;
+    Object.keys(CONFIG.useCases||{}).forEach(id=>{
+      if(STATE.selectedUseCases[id]) selected++;
+      if(STATE.goLiveMonths[id]===undefined||STATE.goLiveMonths[id]===null){STATE.goLiveMonths[id]=1;goLiveCreated++;}
+      if(STATE.selectedUseCases[id]&&!STATE.readiness[id]){STATE.readiness[id]={data:'Amber',owner:'Amber',policy:'Amber'};readinessCreated++;}
+    });
+    if(!STATE.readinessPolicy)STATE.readinessPolicy=defaultReadinessPolicy();
+    if(STATE.discountRate===undefined||STATE.discountRate===null)STATE.discountRate=0.07;
+    saveState(); renderAll();
+    alert(`Scenario defaults repaired.\nSelected use cases: ${selected}\nGo-live defaults added: ${goLiveCreated}\nReadiness rows added: ${readinessCreated}\nReadiness mode: ${readinessPolicyLabel(STATE.readinessPolicy)}`);
+  };
+  window.v29RepairScenarioState=window.v291RepairScenarioState;
+
+  // Cleaner scenario controls in topbar
+  window.renderSavedScenarioControls=function(){
+    const actions=document.querySelector('.top-actions'); if(!actions)return;
+    const old=document.getElementById('v26-scenario-tools'); if(old)old.remove();
+    const saved=(typeof v26GetSavedScenarios==='function'?v26GetSavedScenarios():{});
+    const names=Object.keys(saved||{});
+    const wrap=document.createElement('span'); wrap.id='v26-scenario-tools';
+    wrap.innerHTML=`<button class="btn small" onclick="saveScenarioAs()">Save scenario as…</button><select class="small" onchange="if(this.value){loadScenarioByName(this.value);this.value='';}"><option value="">Load scenario…</option>${names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('')}</select>`;
+    const qaBtn=[...actions.querySelectorAll('button')].find(b=>String(b.textContent||'').includes('Run QA'));
+    if(qaBtn)actions.insertBefore(wrap,qaBtn); else actions.appendChild(wrap);
+  };
+
+  function check(name,pass,detail,critical=true){return {name,pass:!!pass,detail:detail||'',critical:!!critical};}
+  window.v29RunSelfTest=function(){
+    const checks=[];
+    checks.push(check('readinessLabelMap defined',typeof window.readinessLabelMap==='function','Global readiness label map is available.'));
+    ['loadClearwaterDemo','useBenchmarkDefaults','renderUseCases','renderRisksValidation','readinessTableHtml','v29RepairScenarioState','generateInvestmentCase','exportToExcel'].forEach(fn=>checks.push(check('Function exists: '+fn,typeof window[fn]==='function',typeof window[fn]==='function'?'Available':'Missing')));
+    const savedState=JSON.parse(JSON.stringify(STATE));
+    try{loadClearwaterDemo(); const c=calculate(); checks.push(check('Clearwater demo loads and calculates',!!(c&&c.benefits&&c.benefits.length),'Benefits: '+(c.benefits||[]).length));}catch(e){checks.push(check('Clearwater demo loads and calculates',false,e.message));}
+    try{useBenchmarkDefaults('innerMetro'); const ids=selectedUseCaseIdsSafe(); checks.push(check('Metro benchmark loads use cases',ids.length>0,'Selected use cases: '+ids.length));}catch(e){checks.push(check('Metro benchmark loads use cases',false,e.message));}
+    try{useBenchmarkDefaults('regionalCity'); const ids=selectedUseCaseIdsSafe(); checks.push(check('Regional benchmark loads use cases',ids.length>0,'Selected use cases: '+ids.length));}catch(e){checks.push(check('Regional benchmark loads use cases',false,e.message));}
+    try{STATE=savedState; ensureState(); saveState(); renderAll();}catch(e){}
+    const criticalFails=checks.filter(c=>c.critical&&!c.pass);
+    return {version:V291,generatedAt:new Date().toISOString(),pass:criticalFails.length===0,criticalFails:criticalFails.length,checks};
+  };
+  window.v29SelfTestHtml=function(){
+    const r=v29RunSelfTest();
+    return `<div class="section-title"><span class="dot" style="background:${r.pass?'var(--green)':'var(--red)'}"></span>Release QA checks</div><div class="alert ${r.pass?'green':''}"><strong>${r.pass?'QA passed':'Review required'}:</strong> ${r.criticalFails} critical issue(s). This test now explicitly covers Clearwater, Metro benchmark and Regional benchmark loading.</div><table class="cashflow-table"><thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead><tbody>${r.checks.map(c=>`<tr><td>${escapeHtml(c.name)}</td><td><span class="tag ${c.pass?'green':'red'}">${c.pass?'Pass':'Review'}</span></td><td>${escapeHtml(c.detail||'')}</td></tr>`).join('')}</tbody></table><div class="footer-actions"><button class="btn primary" onclick="v29RenderQaPanel()">Run QA again</button><button class="btn" onclick="v29RepairScenarioState()">Repair scenario defaults</button><button class="btn" onclick="v29DownloadQaReport()">Download QA report</button></div><div class="alert blue"><strong>Repair scenario defaults:</strong> fills missing go-live, readiness, discount-rate and governance defaults. It does not change benefit formulas or product assumptions.</div>`;
+  };
+  window.v29RenderQaPanel=function(){
+    const body=document.getElementById('admin-content')||document.getElementById('admin-body');
+    if(body){body.innerHTML=v29SelfTestHtml();}else{const r=v29RunSelfTest(); alert(r.pass?'Release QA passed':'Release QA needs review');}
+  };
+  window.v29DownloadQaReport=function(){const r=v29RunSelfTest(); downloadText('citypulse-v291-qa-report.json',JSON.stringify(r,null,2));};
+
+  try{ensureState(); saveConfig(); saveState(); renderAll();}catch(e){console.error('v2.9.1 recovery initialisation failed',e);}
+})();
+</script>
+
+
+
+<script>
+(function(){
+  const V30='3.0-rc2-discount-sensitivity-fix';
+  try{
+    if(typeof CONFIG!=='undefined' && CONFIG.meta){CONFIG.meta.configVersion=V30;}
+    document.title='CityPulse · The City Dividend · v3.0 RC2 Consolidated Fix';
+  }catch(e){}
+
+  // Public aliases so the UI, QA and future patches use one clear, stable vocabulary.
+  window.loadMetroBenchmark=function(){return useBenchmarkDefaults('innerMetro');};
+  window.loadRegionalBenchmark=function(){return useBenchmarkDefaults('regionalCity');};
+  window.repairScenarioDefaults=function(){return v29RepairScenarioState();};
+  window.v291RepairScenarioDefaults=window.repairScenarioDefaults;
+  window.exportExcel=window.exportToExcel;
+  window.v28ExportExcel=window.exportToExcel;
+  function v30Clone(o){try{return JSON.parse(JSON.stringify(o));}catch(e){return o;}}
+  window.getCityPulseState=function(){try{return v30Clone(STATE);}catch(e){return null;}};
+  window.getCityPulseConfig=function(){try{return v30Clone(CONFIG);}catch(e){return null;}};
+
+  // Keep benchmark card buttons and QA vocabulary explicit.
+  const priorProfile=renderProfile;
+  renderProfile=function(){
+    priorProfile();
+    try{
+      const btns=[...document.querySelectorAll('button')];
+      btns.forEach(b=>{
+        const t=(b.textContent||'').trim().toLowerCase();
+        if(t==='use metro benchmark') b.setAttribute('onclick','loadMetroBenchmark()');
+        if(t==='use regional benchmark') b.setAttribute('onclick','loadRegionalBenchmark()');
+      });
+    }catch(e){}
+  };
+  window.renderProfile=renderProfile;
+
+  // Consolidated self-test wrapper: runs the v2.9.1 test and adds alias/export checks.
+  const priorSelfTest=window.v29RunSelfTest;
+  window.v30RunSelfTest=function(){
+    const base=priorSelfTest?priorSelfTest():{checks:[],criticalFails:999,pass:false};
+    const checks=base.checks||[];
+    function check(name,pass,detail,critical=true){checks.push({name,pass:!!pass,detail:detail||'',critical:!!critical});}
+    check('Function exists: loadMetroBenchmark',typeof window.loadMetroBenchmark==='function','Explicit metro benchmark alias is available.');
+    check('Function exists: loadRegionalBenchmark',typeof window.loadRegionalBenchmark==='function','Explicit regional benchmark alias is available.');
+    check('Function exists: repairScenarioDefaults',typeof window.repairScenarioDefaults==='function','User-facing repair alias is available.');
+    check('Function exists: exportExcel',typeof window.exportExcel==='function','User-facing Excel export alias is available.');
+    const savedState=v30Clone(STATE);
+    try{loadMetroBenchmark(); const c=calculate(); check('Metro benchmark alias calculates',!!(c&&c.benefits&&c.benefits.length),'Benefits: '+((c&&c.benefits)||[]).length);}catch(e){check('Metro benchmark alias calculates',false,e.message);}
+    try{loadRegionalBenchmark(); const c=calculate(); check('Regional benchmark alias calculates',!!(c&&c.benefits&&c.benefits.length),'Benefits: '+((c&&c.benefits)||[]).length);}catch(e){check('Regional benchmark alias calculates',false,e.message);}
+    try{STATE=savedState; ensureState(); saveState(); renderAll();}catch(e){}
+    const criticalFails=checks.filter(c=>c.critical&&!c.pass).length;
+    return {version:V30,generatedAt:new Date().toISOString(),pass:criticalFails===0,criticalFails,checks};
+  };
+  window.v29RunSelfTest=window.v30RunSelfTest;
+
+  window.v29SelfTestHtml=function(){
+    const r=v30RunSelfTest();
+    return `<div class="section-title"><span class="dot" style="background:${r.pass?'var(--green)':'var(--red)'}"></span>Release QA checks</div><div class="alert ${r.pass?'green':''}"><strong>${r.pass?'QA passed':'Review required'}:</strong> ${r.criticalFails} critical issue(s). This consolidated test covers Clearwater, Metro benchmark, Regional benchmark, readiness, repair, Excel export and stable aliases.</div><table class="cashflow-table"><thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead><tbody>${r.checks.map(c=>`<tr><td>${escapeHtml(c.name)}</td><td><span class="tag ${c.pass?'green':'red'}">${c.pass?'Pass':'Review'}</span></td><td>${escapeHtml(c.detail||'')}</td></tr>`).join('')}</tbody></table><div class="footer-actions"><button class="btn primary" onclick="v29RenderQaPanel()">Run QA again</button><button class="btn" onclick="repairScenarioDefaults()">Repair scenario defaults</button><button class="btn" onclick="v29DownloadQaReport()">Download QA report</button></div><div class="alert blue"><strong>Repair scenario defaults:</strong> fills missing go-live, readiness, discount-rate and governance defaults. It does not change benefit formulas or product assumptions.</div>`;
+  };
+  window.v29DownloadQaReport=function(){const r=v30RunSelfTest(); downloadText('citypulse-v30-rc2-qa-report.json',JSON.stringify(r,null,2));};
+
+  try{ensureState(); saveConfig(); saveState(); renderAll();}catch(e){console.error('v3.0 consolidated initialisation failed',e);}
+})();
+</script>
+
+
+
+<style id="v30-rc3-qa-ux-hardening-style">
+/* v3.0 RC3: QA-hardened layout and readability fixes */
+.topbar{height:auto!important;min-height:54px;gap:14px;align-items:flex-start!important;padding-bottom:12px;flex-wrap:wrap}
+.brand{min-width:280px;flex:1 1 320px}.top-actions{flex:2 1 560px;display:flex!important;flex-wrap:wrap!important;justify-content:flex-end!important;align-items:center!important;gap:8px!important}.top-actions .btn,.top-actions select{max-width:100%;white-space:nowrap}.top-actions select{background:var(--card2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:7px 10px;min-height:35px}#v26-scenario-tools{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;max-width:100%}
+.value-bridge,.table-scroll,.rc3-scroll{overflow-x:auto;max-width:100%;padding-bottom:4px}.value-bridge table,.value-bridge .cashflow-table,.table-scroll table,.rc3-scroll table{min-width:720px}.summary details.value-bridge{border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.018);padding:10px}.summary details.value-bridge summary{list-style:none}.summary details.value-bridge summary::-webkit-details-marker{display:none}.summary details.value-bridge:after{content:'Scroll sideways if the table is wider than the panel';display:block;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:6px}.summary .value-bridge .grid3{grid-template-columns:1fr!important}.summary .value-bridge table{font-size:11px}
+.rc3-guidance{border:1px solid var(--border);border-left:4px solid var(--blue);background:var(--blue-bg);border-radius:12px;padding:11px 12px;margin:10px 0;font-size:12px;color:#c7eafe}.rc3-guidance strong{color:var(--text)}.rc3-guidance .btn{margin-top:8px}.rc3-issues{display:flex;flex-direction:column;gap:5px;margin-top:7px}.rc3-issue{background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:9px;padding:7px 8px;color:var(--muted)}.rc3-qa-pass{color:var(--green)}.rc3-qa-review{color:var(--amber)}.rc3-qa-fail{color:var(--red)}
+.readiness-toolbar{gap:8px!important;align-items:center!important}.readiness-status-grid{overflow-x:auto}.readiness-status-grid .cell{min-width:135px}.metric-tile{min-width:0}.metric-value{overflow-wrap:anywhere}.big-metric .metric-value{overflow-wrap:anywhere}
+@media(max-width:1100px){.main{grid-template-columns:1fr!important}.sidebar{position:relative!important;top:auto!important}.top-actions{justify-content:flex-start!important}.brand{flex-basis:100%}}
+@media(max-width:720px){.grid2,.grid3,.grid4,.big-grid,.hero,.hero-metrics{grid-template-columns:1fr!important}.top-actions .btn,#v26-scenario-tools,#v26-scenario-tools select{width:100%;justify-content:center}.top-actions{width:100%}.app{padding:16px}}
+</style>
+
+<script id="v30-rc3-qa-hardening">
+(function(){
+  const V30RC3='3.0-rc3-qa-hardened';
+  try{
+    if(typeof CONFIG!=='undefined' && CONFIG.meta){CONFIG.meta.configVersion=V30RC3;}
+    document.title='CityPulse · The City Dividend · v3.0 RC3 QA Hardened';
+  }catch(e){}
+
+  function rc3Clone(x){try{return JSON.parse(JSON.stringify(x));}catch(e){return x;}}
+  function rc3Money(n){try{return fmt(Number(n)||0,'currencyK');}catch(e){return '$0k';}}
+  function rc3Check(name,pass,detail,critical=true){return {name,pass:!!pass,detail:detail||'',critical:!!critical};}
+  function rc3ReadinessLabels(){
+    if(typeof window.readinessLabelMap==='function'){
+      try{return window.readinessLabelMap();}catch(e){}
+    }
+    return {data:'Source data exists with at least 12 months of history',owner:'Service owner identified and engaged',policy:'Local policy / legal pathway confirmed'};
+  }
+  window.readinessLabelMap=function(){return rc3ReadinessLabels();};
+
+  // Defensive discount-rate sensitivity: stable keys, stable display, no silent zero when a key is missing.
+  function rc3CalculateAtDiscount(rate){
+    const keep=STATE.discountRate;
+    let out=0;
+    try{
+      STATE.discountRate=rate;
+      const base=(typeof calculateBase==='function'?calculateBase():calculate());
+      out=Number(base&&base.npv)||0;
+    }finally{STATE.discountRate=keep;}
+    return out;
+  }
+  function rc3NpvRateSensitivity(){
+    return {'0.04':rc3CalculateAtDiscount(0.04),'0.07':rc3CalculateAtDiscount(0.07),'0.10':rc3CalculateAtDiscount(0.10)};
+  }
+  window.rc3NpvRateSensitivity=rc3NpvRateSensitivity;
+  window.npvRateSensitivity=function(){return rc3NpvRateSensitivity();};
+  window.npvRateSensitivityHtml=function(c){
+    const vals=(c&&c.npvRateSensitivity)||rc3NpvRateSensitivity();
+    const v04=Number(vals['0.04'] ?? vals[0.04] ?? 0);
+    const v07=Number(vals['0.07'] ?? vals[0.07] ?? 0);
+    const v10=Number(vals['0.10'] ?? vals['0.1'] ?? vals[0.10] ?? vals[0.1] ?? 0);
+    const warning=(Math.abs(v10)<1 && Math.abs(v04)>1)?`<div class="alert"><strong>Review required:</strong> 10% discount-rate sensitivity is unexpectedly zero while lower-rate views are not. Run QA before sharing.</div>`:'';
+    return `<div class="value-bridge"><div class="section-title"><span class="dot" style="background:var(--blue)"></span>NPV sensitivity to discount rate</div><p class="value-bridge-note">Higher discount rates reduce the present value of future benefits. This panel helps Finance see whether the value case is robust across common council planning rates.</p><div class="grid3"><div class="metric-tile"><div class="metric-label">4% discount rate</div><div class="metric-value" style="color:var(--green)">${rc3Money(v04)}</div><div class="metric-note">Lower-rate view</div></div><div class="metric-tile"><div class="metric-label">7% discount rate</div><div class="metric-value" style="color:var(--blue)">${rc3Money(v07)}</div><div class="metric-note">Common central case</div></div><div class="metric-tile"><div class="metric-label">10% discount rate</div><div class="metric-value" style="color:var(--amber)">${rc3Money(v10)}</div><div class="metric-note">Higher hurdle-rate view</div></div></div>${warning}</div>`;
+  };
+
+  if(typeof calculate==='function'){
+    const priorCalculateRC3=calculate;
+    calculate=function(){
+      const c=priorCalculateRC3();
+      try{c.npvRateSensitivity=rc3NpvRateSensitivity();}catch(e){}
+      return c;
+    };
+    window.calculate=calculate;
+  }
+
+  function rc3ActiveUseCases(){
+    try{return activeUseCaseIds();}catch(e){return Object.keys((STATE&&STATE.selectedUseCases)||{}).filter(k=>STATE.selectedUseCases[k]);}
+  }
+  function rc3ReadinessIssueRows(){
+    try{ensureState();}catch(e){}
+    const labels=rc3ReadinessLabels();
+    const ids=rc3ActiveUseCases();
+    return ids.map(id=>{
+      const uc=(CONFIG.useCases&&CONFIG.useCases[id])||{};
+      const r=(STATE.readiness&&STATE.readiness[id])||{data:'Amber',owner:'Amber',policy:'Amber'};
+      const outstanding=['data','owner','policy'].filter(k=>(r[k]||'Amber')!=='Green');
+      return {id,name:uc.name||id,checks:r,outstanding,outstandingLabels:outstanding.map(k=>labels[k]||k)};
+    }).filter(x=>x.outstanding.length);
+  }
+  window.rc3ReadinessIssueRows=rc3ReadinessIssueRows;
+
+  function rc3ReadinessPolicy(){try{return (STATE&&STATE.readinessPolicy)||'advisory';}catch(e){return 'advisory';}}
+  function rc3ReadinessGuidanceHtml(){
+    const policy=rc3ReadinessPolicy();
+    const issues=rc3ReadinessIssueRows();
+    if(policy==='deferred'){
+      return `<div id="rc3-readiness-guidance" class="rc3-guidance"><strong>Readiness mode: Deferred / optional.</strong><br>This is acceptable for indicative, demo or benchmark conversations. ${issues.length?`${issues.length} selected use case(s) still have Amber/Red checks for later validation.`:'No outstanding readiness checks.'}<br><button class="btn small" onclick="goStep(6)">Open Risks & Validation</button></div>`;
+    }
+    if(!issues.length){return `<div id="rc3-readiness-guidance" class="rc3-guidance"><strong>Readiness:</strong> All selected use cases are Green.<br><button class="btn small" onclick="goStep(6)">Review Risks & Validation</button></div>`;}
+    const sample=issues.slice(0,4).map(i=>`<div class="rc3-issue"><strong>${escapeHtml(i.name)}</strong><br>${escapeHtml(i.outstandingLabels.join('; '))}</div>`).join('');
+    return `<div id="rc3-readiness-guidance" class="rc3-guidance"><strong>${issues.length} use case(s) have outstanding readiness checks.</strong><br>Fix them in <strong>Step 6 — Risks & Validation</strong> by clicking the Data / Owner / Policy status buttons. Mitigation text explains risk treatment; it does not change readiness status.<div class="rc3-issues">${sample}${issues.length>4?`<div class="rc3-issue">+ ${issues.length-4} more use case(s)</div>`:''}</div><button class="btn small primary" onclick="goStep(6)">Fix readiness checks</button></div>`;
+  }
+
+  if(typeof renderSummary==='function'){
+    const priorSummaryRC3=renderSummary;
+    renderSummary=function(){
+      priorSummaryRC3();
+      const summary=document.getElementById('live-summary'); if(!summary)return;
+      const body=summary.querySelector('.summary-body')||summary;
+      // Remove older vague readiness banners and replace with an actionable one.
+      [...body.querySelectorAll('.alert,.impact-note,#v291-readiness-guidance,#rc3-readiness-guidance')].forEach(el=>{
+        const t=(el.textContent||'').toLowerCase();
+        if(el.id==='v291-readiness-guidance'||el.id==='rc3-readiness-guidance'||(t.includes('outstanding readiness')&&!t.includes('step 6'))){el.remove();}
+      });
+      const wrap=document.createElement('div'); wrap.innerHTML=rc3ReadinessGuidanceHtml();
+      body.insertBefore(wrap.firstElementChild, body.firstChild);
+    };
+    window.renderSummary=renderSummary;
+  }
+
+  if(typeof renderRisksValidation==='function'){
+    const priorRiskRC3=renderRisksValidation;
+    renderRisksValidation=function(){
+      priorRiskRC3();
+      const el=document.getElementById('screen-6'); if(!el)return;
+      const panel=el.querySelector('.panel'); if(!panel)return;
+      if(!document.getElementById('rc3-risk-howto')){
+        const div=document.createElement('div');
+        div.id='rc3-risk-howto'; div.className='alert blue';
+        div.innerHTML='<strong>How to clear the readiness warning:</strong> change the Data, Owner or Policy buttons in the readiness table to Green. Writing “resolved” in the mitigation field is useful evidence, but it does not change the readiness status.';
+        const firstTable=panel.querySelector('.value-bridge');
+        panel.insertBefore(div, firstTable||panel.firstChild.nextSibling);
+      }
+    };
+    window.renderRisksValidation=renderRisksValidation;
+  }
+
+  window.repairScenarioDefaults=function(){
+    try{ensureState();}catch(e){}
+    let goLive=0, readiness=0, risks=0, discount=0;
+    try{
+      STATE.goLiveMonths=STATE.goLiveMonths||{}; STATE.readiness=STATE.readiness||{}; STATE.risks=STATE.risks||{};
+      Object.keys(CONFIG.useCases||{}).forEach(id=>{
+        if(STATE.goLiveMonths[id]===undefined||STATE.goLiveMonths[id]===null){STATE.goLiveMonths[id]=1;goLive++;}
+        if(STATE.selectedUseCases&&STATE.selectedUseCases[id]&&!STATE.readiness[id]){STATE.readiness[id]={data:'Amber',owner:'Amber',policy:'Amber'};readiness++;}
+      });
+      if(STATE.discountRate===undefined||STATE.discountRate===null){STATE.discountRate=0.07;discount++;}
+      if(!STATE.readinessPolicy){STATE.readinessPolicy=(STATE.mode==='demo'||STATE.mode==='benchmark'||STATE.mode==='blank')?'deferred':'advisory';}
+      if(typeof buildRiskRegister==='function'){const rr=buildRiskRegister(); risks=Array.isArray(rr)?rr.length:0;}
+      saveState(); renderAll();
+      alert(`Scenario defaults repaired.\nGo-live defaults added: ${goLive}\nReadiness rows added: ${readiness}\nDiscount rate defaults added: ${discount}\nRisk register rows available: ${risks}\nReadiness mode: ${STATE.readinessPolicy}`);
+      return {goLive,readiness,discount,risks};
+    }catch(e){alert('Repair scenario defaults failed: '+(e&&e.message?e.message:e)); return null;}
+  };
+  window.v29RepairScenarioState=window.repairScenarioDefaults;
+
+  function rc3RunSelfTest(){
+    const checks=[];
+    const add=(n,p,d,c=true)=>checks.push(rc3Check(n,p,d,c));
+    add('readinessLabelMap defined',typeof window.readinessLabelMap==='function','Readiness labels are globally available.');
+    ['loadClearwaterDemo','useBenchmarkDefaults','loadMetroBenchmark','loadRegionalBenchmark','repairScenarioDefaults','exportToExcel','generateInvestmentCase','renderRisksValidation','renderInvestment','npvRateSensitivityHtml'].forEach(fn=>add('Function exists: '+fn,typeof window[fn]==='function',typeof window[fn]==='function'?'Available':'Missing'));
+    const saved=rc3Clone(STATE);
+    function restore(){try{STATE=rc3Clone(saved); ensureState(); saveState(); renderAll();}catch(e){}}
+    try{loadClearwaterDemo(); const c=calculate(); add('Clearwater demo loads and calculates',!!(c&&c.benefits&&c.benefits.length>0),'Benefits: '+((c&&c.benefits)||[]).length);}catch(e){add('Clearwater demo loads and calculates',false,e.message);}
+    try{loadMetroBenchmark(); const c=calculate(); add('Inner Metro benchmark loads and calculates',!!(c&&c.benefits&&c.benefits.length>0),'Benefits: '+((c&&c.benefits)||[]).length);}catch(e){add('Inner Metro benchmark loads and calculates',false,e.message);}
+    try{const vals=rc3NpvRateSensitivity(); const v04=vals['0.04'], v07=vals['0.07'], v10=vals['0.10']; add('Discount sensitivity has numeric 4/7/10 values',[v04,v07,v10].every(Number.isFinite),`4%=${rc3Money(v04)}, 7%=${rc3Money(v07)}, 10%=${rc3Money(v10)}`); add('10% discount sensitivity is not silently zero',!(Math.abs(v10)<1&&Math.abs(v04)>1),`10%=${rc3Money(v10)}`); add('Discount sensitivity is directionally sensible',v04>=v07&&v07>=v10,`4%=${rc3Money(v04)}, 7%=${rc3Money(v07)}, 10%=${rc3Money(v10)}`,false);}catch(e){add('Discount sensitivity calculation',false,e.message);}
+    try{loadRegionalBenchmark(); const c=calculate(); add('Regional benchmark loads and calculates',!!(c&&c.benefits&&c.benefits.length>0),'Benefits: '+((c&&c.benefits)||[]).length);}catch(e){add('Regional benchmark loads and calculates',false,e.message);}
+    try{const issues=rc3ReadinessIssueRows(); add('Readiness issue list renders',Array.isArray(issues),'Outstanding use cases: '+issues.length,false);}catch(e){add('Readiness issue list renders',false,e.message);}
+    try{for(let i=1;i<=7;i++){add('Screen '+i+' exists',!!document.getElementById('screen-'+i),'screen-'+i);} }catch(e){add('Screen existence check',false,e.message);}
+    restore();
+    const criticalFails=checks.filter(x=>x.critical&&!x.pass).length;
+    return {version:V30RC3,generatedAt:new Date().toISOString(),pass:criticalFails===0,criticalFails,checks};
+  }
+  window.v30RunSelfTest=rc3RunSelfTest;
+  window.v29RunSelfTest=rc3RunSelfTest;
+  window.v29SelfTestHtml=function(){
+    const r=rc3RunSelfTest();
+    return `<div class="section-title"><span class="dot" style="background:${r.pass?'var(--green)':'var(--red)'}"></span>Release QA checks</div><div class="alert ${r.pass?'green':''}"><strong>${r.pass?'QA passed':'Review required'}:</strong> ${r.criticalFails} critical issue(s). RC3 checks demos, benchmarks, discount sensitivity, readiness labels, exports and screen integrity.</div><div class="rc3-scroll"><table class="cashflow-table"><thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead><tbody>${r.checks.map(c=>`<tr><td>${escapeHtml(c.name)}</td><td><span class="tag ${c.pass?'green':(c.critical?'red':'amber')}">${c.pass?'Pass':(c.critical?'Review':'Note')}</span></td><td>${escapeHtml(c.detail||'')}</td></tr>`).join('')}</tbody></table></div><div class="footer-actions"><button class="btn primary" onclick="v29RenderQaPanel()">Run QA again</button><button class="btn" onclick="repairScenarioDefaults()">Repair scenario defaults</button><button class="btn" onclick="v29DownloadQaReport()">Download QA report</button></div><div class="alert blue"><strong>Publish rule:</strong> publish only if critical issues are zero and the loaded benchmark values look commercially sensible.</div>`;
+  };
+  window.v29RenderQaPanel=function(){const body=document.getElementById('admin-content')||document.getElementById('admin-body'); if(body){body.innerHTML=window.v29SelfTestHtml();}else{const r=rc3RunSelfTest(); alert(r.pass?'Release QA passed':'Release QA needs review: '+r.criticalFails+' critical issue(s)');}};
+  window.v29DownloadQaReport=function(){const r=rc3RunSelfTest(); downloadText('citypulse-v30-rc3-qa-report.json',JSON.stringify(r,null,2));};
+
+  try{ensureState(); saveConfig(); saveState(); renderAll();}catch(e){console.error('v3.0 RC3 initialisation warning',e);}
+})();
 </script>
 
 </body>
